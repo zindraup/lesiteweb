@@ -3,6 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Ne pas forcer HTTPS lors du développement local -->
+    <script>
+        // Vérifier si nous sommes sur GitHub Pages ou un autre serveur de production
+        const isProduction = !window.location.hostname.includes('localhost') && 
+                           !window.location.hostname.includes('127.0.0.1');
+        
+        // Appliquer Content-Security-Policy uniquement en production
+        if (isProduction) {
+            const meta = document.createElement('meta');
+            meta.httpEquiv = "Content-Security-Policy";
+            meta.content = "upgrade-insecure-requests";
+            document.head.appendChild(meta);
+            
+            // Rediriger vers HTTPS si actuellement sur HTTP et en production
+            if (window.location.protocol === 'http:') {
+                window.location.href = window.location.href.replace('http:', 'https:');
+            }
+        }
+    </script>
     <title>DROP THE MIC</title>
     <link rel="stylesheet" href="styles.css">
 </head>
