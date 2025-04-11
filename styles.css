@@ -880,15 +880,16 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span {
 /* Détection d'orientation pour mobile seulement */
 @media screen and (max-width: 768px) and (orientation: portrait) {
     #orientation-message {
-        display: flex;
+        display: none;
     }
     
+    /* Permettre au contenu de s'afficher en mode portrait */
     .content-wrapper,
     .decorative-cards,
     .video-container,
     .buy-button,
     .download-button {
-        display: none !important;
+        display: block !important;
     }
 }
 

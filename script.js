@@ -726,9 +726,9 @@ function getRandomProduction() {
     } else if (cardsSinceLastRed === 3) {
         redProbability = 0.35; // 35% de chance au troisième tirage
     } else if (cardsSinceLastRed === 4) {
-        redProbability = 0.65; // 65% de chance au quatrième tirage
+        redProbability = 0.4; // 65% de chance au quatrième tirage
     } else {
-        redProbability = 0.85; // 85% de chance ensuite, augmente la probabilité d'obtenir une carte rouge
+        redProbability = 0.4; // 85% de chance ensuite, augmente la probabilité d'obtenir une carte rouge
     }
     
     shouldSelectRed = Math.random() < redProbability;
@@ -1679,19 +1679,9 @@ function isMobileDevice() {
 
 // Fonction pour vérifier l'orientation de l'appareil et afficher le message si nécessaire
 function checkOrientation() {
-    // Ne vérifier l'orientation que sur les appareils mobiles
-    if (isMobileDevice()) {
-        const orientationMessage = document.getElementById('orientation-message');
-        
-        // Vérifier si l'appareil est en mode portrait
-        if (window.innerHeight > window.innerWidth) {
-            // Afficher le message d'orientation
-            orientationMessage.style.display = 'flex';
-        } else {
-            // Masquer le message d'orientation
-            orientationMessage.style.display = 'none';
-        }
-    }
+    // Le message d'orientation n'est plus nécessaire - on affiche toujours le contenu
+    const orientationMessage = document.getElementById('orientation-message');
+    orientationMessage.style.display = 'none';
 }
 
 // Initialiser les variables CSS au chargement de la page
@@ -1766,10 +1756,9 @@ function handleWindowResize() {
 // Fonction utilitaire pour obtenir le ratio d'échelle uniforme
 function getUniformScaleRatio() {
     // Calculer le ratio de mise à l'échelle horizontal et vertical
-    const horizontalRatio = window.innerWidth / 1920;
+    const horizontalRatio = window.innerWidth / 1180;
     const verticalRatio = window.innerHeight / 1080;
-    
-    // Prendre le plus petit pour éviter les déformations
+
     return Math.min(horizontalRatio, verticalRatio);
 }
 
