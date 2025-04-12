@@ -1,8 +1,52 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Favicon et métadonnées -->
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <meta
+      name="description"
+      content="Découvrez les meilleures prods en tirant une carte au hasard"
+    />
+    <meta
+      name="keywords"
+      content="saint-drop, saint drop, musique, production, jeu, cartes, BPM, beats, rap, trap, drill, hip-hop, boombap"
+    />
+    <meta name="author" content="SAINT-DROP" />
+    <meta name="theme-color" content="#000000" />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="" />
+    <meta property="og:title" content="DROP THE MIC by SAINT-DROP" />
+    <meta
+      property="og:description"
+      content="Découvrez les meilleures prods en tirant une carte au hasard"
+    />
+    <meta property="og:image" content="images/favicon.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="DROP THE MIC by SAINT-DROP" />
+    <meta
+      property="twitter:description"
+      content="Découvrez les meilleures prods en tirant une carte au hasard"
+    />
+    <meta property="twitter:image" content="images/favicon.png" />
+
+    <!-- Optimisations de performance -->
+    <link rel="preconnect" href="https://www.youtube.com" />
+    <link
+      rel="preconnect"
+      href="https://www.google-analytics.com"
+      crossorigin
+    />
+    <link rel="dns-prefetch" href="https://www.youtube.com" />
+    <link rel="dns-prefetch" href="https://i.ytimg.com" />
+    <link rel="preload" href="images/dos_de_carte.png" as="image" />
+    <link rel="preload" href="images/carte_rouge.png" as="image" />
+    <link rel="preload" href="images/carte_noire.png" as="image" />
+    <link rel="preload" href="styles.css" as="style" />
+    <link rel="preload" href="script.js" as="script" />
     <!-- En-têtes de sécurité temporairement désactivés -->
     <!--
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -11,14 +55,15 @@
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
     -->
-    
+
     <script>
-        // Vérifier si nous sommes sur GitHub Pages ou un autre serveur de production
-        const isProduction = !window.location.hostname.includes('localhost') && 
-                           !window.location.hostname.includes('127.0.0.1');
-        
-        // Content-Security-Policy et redirection HTTPS temporairement désactivées
-        /*
+      // Vérifier si nous sommes sur GitHub Pages ou un autre serveur de production
+      const isProduction =
+        !window.location.hostname.includes("localhost") &&
+        !window.location.hostname.includes("127.0.0.1");
+
+      // Content-Security-Policy et redirection HTTPS temporairement désactivées
+      /*
         if (isProduction) {
             const meta = document.createElement('meta');
             meta.httpEquiv = "Content-Security-Policy";
@@ -33,105 +78,105 @@
         */
     </script>
     <title>DROP THE MIC</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <!-- Message d'orientation pour mobile -->
     <div id="orientation-message">
-        <div class="orientation-content">
-            <div class="rotate-animation">
-                <div class="phone-icon">
-                    <div class="phone-body"></div>
-                    <div class="phone-screen"></div>
-                </div>
-                <div class="rotate-arrow"></div>
-            </div>
-            <p>TOURNE TON PHONE</p>
-            <p class="smaller">VERSION VERTICALE EN CONSTRUCTION...</p>
+      <div class="orientation-content">
+        <div class="rotate-animation">
+          <div class="phone-icon">
+            <div class="phone-body"></div>
+            <div class="phone-screen"></div>
+          </div>
+          <div class="rotate-arrow"></div>
         </div>
+        <p>TOURNE TON PHONE</p>
+        <p class="smaller">VERSION VERTICALE EN CONSTRUCTION...</p>
+      </div>
     </div>
 
     <!-- Conteneur principal -->
     <div class="content-wrapper">
-        <!-- Titre principal -->
-        <h1 data-text="DROP THE MIC">DROP THE MIC</h1>
-        
-        <!-- Titre de la production (initialement masqué) -->
-        <div class="prod-title hidden"></div>
-        
-        <!-- Texte du BPM (initialement masqué) -->
-        <div class="bpm-text hidden"></div>
-        
-        <!-- Conteneur du jeu -->
-        <div class="game-container">
-            <div class="cards-fan">
-                <!-- Les cartes seront générées dynamiquement par JavaScript -->
-                <div class="card" data-index="0" onclick="revealCard(this)">
-                    <div class="card-inner">
-                        <div class="card-front"></div>
-                        <div class="card-back"><span></span></div>
-                    </div>
-                </div>
-                <div class="card" data-index="1" onclick="revealCard(this)">
-                    <div class="card-inner">
-                        <div class="card-front"></div>
-                        <div class="card-back"><span></span></div>
-                    </div>
-                </div>
-                <div class="card" data-index="2" onclick="revealCard(this)">
-                    <div class="card-inner">
-                        <div class="card-front"></div>
-                        <div class="card-back"><span></span></div>
-                    </div>
-                </div>
-                <div class="card" data-index="3" onclick="revealCard(this)">
-                    <div class="card-inner">
-                        <div class="card-front"></div>
-                        <div class="card-back"><span></span></div>
-                    </div>
-                </div>
-                <div class="card" data-index="4" onclick="revealCard(this)">
-                    <div class="card-inner">
-                        <div class="card-front"></div>
-                        <div class="card-back"><span></span></div>
-                    </div>
-                </div>
-                <div class="card" data-index="5" onclick="revealCard(this)">
-                    <div class="card-inner">
-                        <div class="card-front"></div>
-                        <div class="card-back"><span></span></div>
-                    </div>
-                </div>
+      <!-- Titre principal -->
+      <h1 data-text="DROP THE MIC">DROP THE MIC</h1>
+
+      <!-- Titre de la production (initialement masqué) -->
+      <div class="prod-title hidden"></div>
+
+      <!-- Texte du BPM (initialement masqué) -->
+      <div class="bpm-text hidden"></div>
+
+      <!-- Conteneur du jeu -->
+      <div class="game-container">
+        <div class="cards-fan">
+          <!-- Les cartes seront générées dynamiquement par JavaScript -->
+          <div class="card" data-index="0" onclick="revealCard(this)">
+            <div class="card-inner">
+              <div class="card-front"></div>
+              <div class="card-back"><span></span></div>
             </div>
+          </div>
+          <div class="card" data-index="1" onclick="revealCard(this)">
+            <div class="card-inner">
+              <div class="card-front"></div>
+              <div class="card-back"><span></span></div>
+            </div>
+          </div>
+          <div class="card" data-index="2" onclick="revealCard(this)">
+            <div class="card-inner">
+              <div class="card-front"></div>
+              <div class="card-back"><span></span></div>
+            </div>
+          </div>
+          <div class="card" data-index="3" onclick="revealCard(this)">
+            <div class="card-inner">
+              <div class="card-front"></div>
+              <div class="card-back"><span></span></div>
+            </div>
+          </div>
+          <div class="card" data-index="4" onclick="revealCard(this)">
+            <div class="card-inner">
+              <div class="card-front"></div>
+              <div class="card-back"><span></span></div>
+            </div>
+          </div>
+          <div class="card" data-index="5" onclick="revealCard(this)">
+            <div class="card-inner">
+              <div class="card-front"></div>
+              <div class="card-back"><span></span></div>
+            </div>
+          </div>
         </div>
-        
-        <!-- Texte du bas -->
-        <div class="bottom-text">CHOISIS UNE CARTE</div>
-        
-        <!-- Texte de redémarrage (initialement masqué) -->
-        <div class="restart-text">CLIQUE SUR LA CARTE POUR RECOMMENCER</div>
+      </div>
+
+      <!-- Texte du bas -->
+      <div class="bottom-text">CHOISIS UNE CARTE</div>
+
+      <!-- Texte de redémarrage (initialement masqué) -->
+      <div class="restart-text">CLIQUE SUR LA CARTE POUR RECOMMENCER</div>
     </div>
-    
+
     <!-- Cartes décoratives en arrière-plan -->
     <div class="decorative-cards"></div>
-    
+
     <!-- Conteneur vidéo YouTube (initialement masqué) -->
     <div class="video-container">
-        <div id="youtube-player"></div>
+      <div id="youtube-player"></div>
     </div>
-    
+
     <!-- Bouton de téléchargement -->
     <div class="download-button">
-        <img src="images/download.png" alt="Download">
-        <span>TÉLÉCHARGER</span>
+      <img src="images/download.png" alt="Download" />
+      <span>TÉLÉCHARGER</span>
     </div>
-    
+
     <!-- Bouton d'achat -->
     <div class="buy-button">
-        <img src="images/shopping-cart.png" alt="Buy">
-        <span>ACHETER</span>
+      <img src="images/shopping-cart.png" alt="Buy" />
+      <span>ACHETER</span>
     </div>
-    
+
     <script src="script.js"></script>
-</body>
+  </body>
 </html>
