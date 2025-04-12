@@ -983,7 +983,7 @@ async function loadYouTubeVideo(videoId) {
         youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
             playerVars: {
-                'autoplay': 1, // Activer l'autoplay pour tous les navigateurs qui le supportent
+                'autoplay': isInsta ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
                 'controls': isInsta ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
                 'showinfo': 0,
                 'modestbranding': 1,
@@ -994,7 +994,7 @@ async function loadYouTubeVideo(videoId) {
                 'cc_load_policy': 0,
                 'color': 'white',
                 'playsinline': 1, // Important pour iOS
-                'mute': 1, // Mettre en sourdine pour permettre l'autoplay sur plus de navigateurs
+                'mute': isInsta ? 0 : 1, // Pas de mode muet pour Instagram, mais actif ailleurs pour permettre l'autoplay
                 'origin': window.location.origin,
                 'enablejsapi': 1
             },
@@ -1276,21 +1276,9 @@ function onPlayerReady(event) {
         // Lancer la lecture automatiquement
         event.target.playVideo();
     } else {
-        console.log("Navigateur Instagram détecté, utilisation des contrôles natifs YouTube");
-        
-        // Pour Instagram, essayer de démarrer la lecture mais avec un délai
-        // (certaines versions d'Instagram/iOS nécessitent un délai après le chargement)
-        setTimeout(() => {
-            try {
-                // Essayer de démarrer la vidéo 
-                event.target.playVideo();
-                
-                // Si l'autoplay ne fonctionne pas, attendre l'interaction utilisateur
-                console.log("Autoplay tenté sur Instagram, l'utilisateur devra peut-être cliquer manuellement");
-            } catch (e) {
-                console.error("Erreur lors du démarrage de la vidéo sur Instagram:", e);
-            }
-        }, 1000);
+        console.log("Navigateur Instagram détecté, attente du clic de l'utilisateur sur le bouton de lecture");
+        // Dans Instagram, on attend que l'utilisateur clique sur le bouton de lecture de YouTube
+        // Le son sera activé par défaut lorsqu'il cliquera sur play
     }
     
     // Émettre un événement personnalisé
@@ -1830,11 +1818,9 @@ function showInstagramMessage() {
         justifyContent: 'center'
     });
     
-    // Texte du message avec une flèche pointant vers le haut à droite
+    // Texte du message avec instructions pour Instagram et flèche pointant vers le haut à droite
     const messageText = document.createElement('div');
-    messageText.innerHTML = 'Pour une meilleure expérience, ouvrez cette page dans votre navigateur web <span style="font-size: 20px; margin-left: 10px;">&#8599;</span>';
-    
-    // Bouton de fermeture (supprimé car on veut garder le message affiché)
+    messageText.innerHTML = 'Ouvre la page dans ton navigateur web, ici c\'est nul <span style="font-size: 20px; margin-left: 10px;">&#8599;</span>';
     
     // Ajouter les éléments au conteneur
     messageContainer.appendChild(messageText);
@@ -1844,8 +1830,7 @@ function showInstagramMessage() {
     
     // Marquer le message comme affiché
     instagramMessageShown = true;
-    
-    // Pas de timer pour faire disparaître le message, il reste affiché en permanence
+
 }
 
 // Initialiser les variables CSS au chargement de la page
