@@ -1823,6 +1823,7 @@ function showInstagramMessage() {
         zIndex: '10000',
         textAlign: 'center',
         fontSize: '16px',
+        fontFamily: 'Arial, Helvetica, sans-serif', // Police basique
         boxShadow: '0 4px 10px rgba(0, 0, 0, 0.3)',
         display: 'flex',
         alignItems: 'center',
@@ -1833,45 +1834,18 @@ function showInstagramMessage() {
     const messageText = document.createElement('div');
     messageText.innerHTML = 'Pour une meilleure expérience, ouvrez cette page dans votre navigateur web <span style="font-size: 20px; margin-left: 10px;">&#8599;</span>';
     
-    // Bouton de fermeture
-    const closeButton = document.createElement('button');
-    closeButton.innerHTML = '✕';
-    Object.assign(closeButton.style, {
-        position: 'absolute',
-        right: '10px',
-        top: '10px',
-        backgroundColor: 'transparent',
-        border: 'none',
-        color: 'white',
-        fontSize: '18px',
-        cursor: 'pointer'
-    });
+    // Bouton de fermeture (supprimé car on veut garder le message affiché)
     
     // Ajouter les éléments au conteneur
     messageContainer.appendChild(messageText);
-    messageContainer.appendChild(closeButton);
     
     // Ajouter le conteneur à la page
     document.body.appendChild(messageContainer);
     
-    // Gestionnaire d'événement pour fermer le message
-    closeButton.addEventListener('click', function() {
-        messageContainer.style.display = 'none';
-    });
-    
     // Marquer le message comme affiché
     instagramMessageShown = true;
     
-    // Faire disparaître le message après 10 secondes
-    setTimeout(() => {
-        messageContainer.style.opacity = '0';
-        messageContainer.style.transition = 'opacity 0.5s ease';
-        setTimeout(() => {
-            if (messageContainer.parentNode) {
-                messageContainer.parentNode.removeChild(messageContainer);
-            }
-        }, 500);
-    }, 10000);
+    // Pas de timer pour faire disparaître le message, il reste affiché en permanence
 }
 
 // Initialiser les variables CSS au chargement de la page
