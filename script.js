@@ -972,13 +972,18 @@ async function loadYouTubeVideo(videoId) {
             return;
         }
         
-        // Créer un nouveau lecteur YouTube avec des contrôles minimaux
-        // La plupart des contrôles sont désactivés car nous utilisons notre propre interface
+        // Adapter le style du conteneur vidéo pour Instagram
+        const isInsta = isInstagramBrowser();
+        if (isInsta) {
+            applyInstagramVideoStyles();
+        }
+        
+        // Créer un nouveau lecteur YouTube avec des contrôles adaptés au contexte
         youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
             playerVars: {
-                'autoplay': 0, // On va contrôler la lecture via notre interface
-                'controls': 0, // Désactiver les contrôles natifs
+                'autoplay': 1, // Activer l'autoplay pour tous les navigateurs qui le supportent
+                'controls': isInsta ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
                 'showinfo': 0,
                 'modestbranding': 1,
                 'rel': 0,
@@ -987,7 +992,8 @@ async function loadYouTubeVideo(videoId) {
                 'disablekb': 1, // Désactiver les contrôles clavier
                 'cc_load_policy': 0,
                 'color': 'white',
-                'playsinline': 1,
+                'playsinline': 1, // Important pour iOS
+                'mute': 1, // Mettre en sourdine pour permettre l'autoplay sur plus de navigateurs
                 'origin': window.location.origin,
                 'enablejsapi': 1
             },
@@ -1003,11 +1009,71 @@ async function loadYouTubeVideo(videoId) {
     }
 }
 
+// Fonction pour appliquer des styles spécifiques pour le navigateur Instagram
+function applyInstagramVideoStyles() {
+    // Créer une feuille de style si elle n'existe pas déjà
+    let styleSheet = document.getElementById('instagram-video-styles');
+    if (!styleSheet) {
+        styleSheet = document.createElement('style');
+        styleSheet.id = 'instagram-video-styles';
+        document.head.appendChild(styleSheet);
+    }
+    
+    // Configurer les règles CSS spécifiques à Instagram
+    const cssRules = `
+        /* Styles pour s'assurer que l'iframe YouTube est au premier plan et cliquable */
+        #youtube-player,
+        #youtube-player iframe {
+            position: relative !important;
+            z-index: 1000 !important;
+            pointer-events: auto !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        /* Désactiver les événements de pointeur sur l'overlay personnalisé */
+        .youtube-custom-overlay {
+            display: none !important;
+            pointer-events: none !important;
+        }
+        
+        /* S'assurer que le conteneur vidéo est transparent aux événements de pointeur */
+        .video-container {
+            pointer-events: none !important;
+            background-color: transparent !important;
+        }
+        
+        /* Mais permettre les interactions directes avec l'iframe à l'intérieur */
+        .video-container iframe,
+        .video-container #youtube-player {
+            pointer-events: auto !important;
+        }
+        
+        /* S'assurer que rien ne recouvre la vidéo */
+        .center-play-indicator,
+        .custom-video-controls,
+        .progress-container {
+            display: none !important;
+        }
+    `;
+    
+    // Remplacer le contenu de la feuille de style
+    styleSheet.textContent = cssRules;
+    
+    console.log("Styles appliqués pour le navigateur Instagram");
+}
+
 // Fonction pour créer l'overlay personnalisé pour le lecteur YouTube
 function createCustomYouTubeOverlay() {
     // Récupérer le conteneur vidéo
     const videoContainer = document.querySelector('.video-container');
     if (!videoContainer) return;
+    
+    // Ne pas créer d'overlay dans le navigateur Instagram
+    if (isInstagramBrowser()) {
+        console.log("Navigateur Instagram détecté, pas d'overlay personnalisé");
+        return;
+    }
     
     // Supprimer tout overlay existant
     const existingOverlay = videoContainer.querySelector('.youtube-custom-overlay');
@@ -1199,11 +1265,32 @@ function onPlayerReady(event) {
     // La vidéo est maintenant prête
     isLoadingVideo = false;
     
-    // Créer l'overlay personnalisé pour contrôler la vidéo
-    createCustomYouTubeOverlay();
+    const inInstagramBrowser = isInstagramBrowser();
     
-    // Lancer la lecture automatiquement
-    event.target.playVideo();
+    // Gérer différemment selon le navigateur
+    if (!inInstagramBrowser) {
+        // Créer l'overlay personnalisé pour contrôler la vidéo sur les navigateurs standards
+        createCustomYouTubeOverlay();
+        
+        // Lancer la lecture automatiquement
+        event.target.playVideo();
+    } else {
+        console.log("Navigateur Instagram détecté, utilisation des contrôles natifs YouTube");
+        
+        // Pour Instagram, essayer de démarrer la lecture mais avec un délai
+        // (certaines versions d'Instagram/iOS nécessitent un délai après le chargement)
+        setTimeout(() => {
+            try {
+                // Essayer de démarrer la vidéo 
+                event.target.playVideo();
+                
+                // Si l'autoplay ne fonctionne pas, attendre l'interaction utilisateur
+                console.log("Autoplay tenté sur Instagram, l'utilisateur devra peut-être cliquer manuellement");
+            } catch (e) {
+                console.error("Erreur lors du démarrage de la vidéo sur Instagram:", e);
+            }
+        }, 1000);
+    }
     
     // Émettre un événement personnalisé
     document.dispatchEvent(new Event('YT.PlayerState.PLAYING'));
@@ -1675,6 +1762,40 @@ function isMobileDevice() {
         navigator.userAgent.match(/BlackBerry/i) ||
         navigator.userAgent.match(/Windows Phone/i)
     );
+}
+
+// Fonction pour détecter si nous sommes dans le navigateur Instagram
+function isInstagramBrowser() {
+    // Vérifier si l'agent utilisateur contient "Instagram"
+    if (navigator.userAgent.includes('Instagram')) {
+        return true;
+    }
+    
+    // Vérifier si l'URL de référence provient d'Instagram
+    if (document.referrer && document.referrer.includes('instagram.com')) {
+        return true;
+    }
+    
+    // Certaines implémentations du WebView d'Instagram modifient window.navigator
+    try {
+        if (window.navigator.userAgent.indexOf('Instagram') !== -1) {
+            return true;
+        }
+    } catch (e) {
+        console.error("Erreur lors de la vérification de userAgent:", e);
+    }
+    
+    // Vérifier si nous sommes dans un iframe (méthode parfois utilisée par Instagram)
+    try {
+        if (window !== window.top) {
+            return true;
+        }
+    } catch (e) {
+        // L'accès à window.top a échoué, ce qui suggère souvent un iframe cross-origin
+        return true;
+    }
+    
+    return false;
 }
 
 // Initialiser les variables CSS au chargement de la page
