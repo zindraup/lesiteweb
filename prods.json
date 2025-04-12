@@ -521,12 +521,6 @@
           "buy": "https://www.saint-drop.com/beat/gosh-hard-dub-trap-type-beat-135-bpm-13957481"
         },
         {
-          "title": "BAD",
-          "id": "l1iNcHmJLE4",
-          "bpm": 140,
-          "buy": "https://www.saint-drop.com/beat/bad-organic-drill-type-beat-140-bpm-13890765"
-        },
-        {
           "title": "NICE",
           "id": "v9G8Y1dHC0E",
           "bpm": 170,
@@ -969,6 +963,12 @@
         }
       ],
       "Drill": [
+        {
+          "title": "BAD",
+          "id": "l1iNcHmJLE4",
+          "bpm": 140,
+          "buy": "https://www.saint-drop.com/beat/bad-organic-drill-type-beat-140-bpm-13890765"
+        },
         {
           "title": "DANGER",
           "id": "RN5gc7wLyoc",
