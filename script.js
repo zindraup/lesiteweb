@@ -557,131 +557,119 @@ const animationSequence = new AnimationSequence();
 // Fonction pour gérer la réinitialisation rapide d'une carte révélée
 async function resetCardWithAnimation(card) {
     const cardInner = card.querySelector('.card-inner');
-    
+
     // Ajouter la classe de transition rapide
     cardInner.classList.add('quick-reset');
-    
+
     // Forcer un reflow avant de retirer la classe revealed
     void cardInner.offsetWidth;
-    
+
     // Retirer la classe revealed pour déclencher l'animation de retournement rapide
     card.classList.remove('revealed');
-    
+
     // Attendre un court délai pour laisser le temps à la carte de se retourner
     await animationSequence.delay(150);
-    
+
     // Maintenant retirer les autres classes de position
     card.classList.remove('selected', 'descend');
-    
+
     // Restore original card size if saved
     if (card.dataset.originalWidth && card.dataset.originalHeight) {
         card.style.width = card.dataset.originalWidth;
         card.style.height = card.dataset.originalHeight;
     }
-    
+
     // Forcer un autre reflow pour appliquer les changements de position
     void card.offsetWidth;
-    
+
     // Retirer la classe fade-out pour permettre à la carte de revenir dans le paquet
-    // NE PAS retirer la classe fade-out ici, ce sera fait dans initializeGame
-    // card.classList.remove('fade-out');
-    
+    card.classList.remove('fade-out');
+
     // Clear the card's transform to let our dynamic positioning take effect
     card.style.transform = '';
-    
+
     // Nettoyer la classe quick-reset après la fin de toutes les animations
     setTimeout(() => {
         cardInner.classList.remove('quick-reset');
     }, 250);
-    
+
     return Promise.resolve();
 }
 
 // Initialisation du jeu
 async function initializeGame() {
     console.log("Initialisation du jeu...");
-    
+
     // Empêcher les clics pendant la réinitialisation
     isAnimating = true;
-    
+
     // Réinitialiser l'interface
     resetUI();
-    
+
     // Identifier la carte sélectionnée (s'il y en a une)
-    const revealedCard = Array.from(domElements.cards).find(card => 
+    const revealedCard = Array.from(domElements.cards).find(card =>
         card.classList.contains('revealed') && card.classList.contains('selected')
     );
-    
+
     // Si une carte est révélée, on l'anime rapidement en premier
     if (revealedCard) {
         await resetCardWithAnimation(revealedCard);
     }
-    
-    // Réinitialiser toutes les cartes en deux étapes pour éviter les problèmes d'animation
-    // Étape 1: Nettoyer les classes et les styles
+
+    // Réinitialiser toutes les cartes
     domElements.cards.forEach(card => {
         const cardInner = card.querySelector('.card-inner');
         const cardId = card.getAttribute('data-index');
-        
+
         // Annuler les timers de survol existants
         if (hoverTimers[cardId]) {
             clearTimeout(hoverTimers[cardId]);
             delete hoverTimers[cardId];
         }
-        
+
         // Supprimer la classe vibrating si ce n'est pas déjà fait
         cardInner.classList.remove('vibrating');
-        
-        // Pour toutes les cartes, sauf la révélée (déjà traitée)
+
+        // S'assurer que toutes les classes sont retirées
+        // (redondant pour la carte révélée mais nécessaire pour les autres)
         if (!card.isEqualNode(revealedCard)) {
-            card.classList.remove('selected', 'descend', 'revealed');
-            // Ne pas retirer fade-out tout de suite pour éviter les flashs
+            card.classList.remove('selected', 'descend', 'revealed', 'fade-out');
         }
-        
+
         // Supprimer les gestionnaires d'événements de réinitialisation
         card.removeEventListener('click', handleRevealedCardClick);
-        
+
         // Réactiver l'attribut onclick original
         if (!card.hasAttribute('onclick')) {
             card.setAttribute('onclick', 'revealCard(this)');
         }
-        
+
         // Clear any inline transform styles
         card.style.transform = '';
     });
-    
+
     // Réinitialiser le titre principal et les textes
     domElements.title.textContent = 'DROP THE MIC';
     domElements.title.classList.remove('hidden');
-    
+
     domElements.bottomText.textContent = 'CHOISIS UNE CARTE';
     domElements.bottomText.classList.remove('hidden');
-    
+
     domElements.restartText.classList.remove('visible');
-    
+
     // Réinitialiser la production actuelle
     currentProduction = null;
-    
-    // Attendre que toutes les transitions soient terminées
-    await animationSequence.delay(50);
-    
-    // Étape 2: Retirer la classe fade-out de toutes les cartes pour éviter les flashs
-    // Attendre que les cartes aient disparu avant de retirer la classe fade-out
-    domElements.cards.forEach(card => {
-        // Maintenant retirer la classe fade-out
-        card.classList.remove('fade-out');
-    });
-    
+
     // Update card positions based on current window size
     updateCardsFan();
-    
+
     // Attendre que toutes les transitions soient terminées
-    await animationSequence.delay(250);
-    
+    await animationSequence.delay(350); // Réduit car les animations sont plus rapides maintenant
+
     // Réinitialiser les variables d'état
     selectedCard = null;
     isAnimating = false;
-    
+
     console.log("Jeu réinitialisé et prêt !");
 }
 
@@ -1545,7 +1533,7 @@ function updateTextPositions() {
 
     // Position du texte du bas
     const bottomTextElement = document.querySelector('.bottom-text');
-    const bottomTextTopReference = 900; // proche du bas en 1080p
+    const bottomTextTopReference = 840; // proche du bas en 1080p
     bottomTextElement.style.position = 'fixed';
     bottomTextElement.style.top = `${marginVertical + (bottomTextTopReference * scaleRatio)}px`;
     bottomTextElement.style.bottom = 'auto';
@@ -2406,11 +2394,14 @@ function updateDecorativeCardsVertical() {
             position = TopPositions[index % TopPositions.length];
             
             // Calculer la position verticale - en haut de l'écran
-            // Fixer les cartes directement au bord supérieur
-            const topPosition = -100* scaleRatio; // Réduire la zone pour coller au bord supérieur
+            // Les valeurs 'top' dans TopPositions sont des pourcentages (0-100) de la hauteur supérieure
+            const verticalPercent = (position.bottom +90) / 100;
+            const topPosition = marginVertical + (verticalPercent * (referenceHeight/2) * scaleRatio);
             
             // Calculer la position horizontale
-            const horizontalPercent = (position.left) / 100;
+            // Distribuer les cartes sur toute la largeur
+            // Les valeurs 'left' dans TopPositions sont des décalages relatifs
+            const horizontalPercent = (position.left) / 100; // Convertir en pourcentage centré (0-100)
             const leftPosition = (horizontalPercent * referenceWidth * scaleRatio * spreadMultiplier) + marginHorizontal;
             
             // Appliquer les positions
@@ -2418,21 +2409,25 @@ function updateDecorativeCardsVertical() {
             card.style.left = `${leftPosition}px`;
             card.style.bottom = 'auto';
             card.style.right = 'auto';
-        } else { 
+        } else {
             // Utiliser les positions du bas pour la seconde moitié des cartes
             position = BottomPositions[(index - midPoint) % BottomPositions.length];
             
             // Calculer la position verticale - en bas de l'écran
-            const bottomPosition = -100  * scaleRatio;
+            // Les valeurs 'top' dans BottomPositions sont des pourcentages (0-100) de la hauteur inférieure
+            const verticalPercent = (position.top +90) / 100;
+            const bottomPosition = marginVertical + (referenceHeight/2) + (verticalPercent * (referenceHeight/2) * scaleRatio);
             
             // Calculer la position horizontale
-            const horizontalPercent = (position.left) / 100;
+            // Distribuer les cartes sur toute la largeur
+            // Les valeurs 'left' dans BottomPositions sont des décalages relatifs
+            const horizontalPercent = (position.left) / 100; // Convertir en pourcentage centré (0-100)
             const leftPosition = (horizontalPercent * referenceWidth * scaleRatio * spreadMultiplier) + marginHorizontal;
             
             // Appliquer les positions
-            card.style.bottom = `${bottomPosition}px`;
+            card.style.top = `${bottomPosition}px`;
             card.style.left = `${leftPosition}px`;
-            card.style.top = 'auto';
+            card.style.bottom = 'auto';
             card.style.right = 'auto';
         }
         
