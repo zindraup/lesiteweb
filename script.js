@@ -17,6 +17,70 @@ let lastBlackProduction = null; // Pour stocker la dernière production noire s�
 let lastBlackCategory = null; // Pour stocker la dernière catégorie noire sélectionnée
 let cardsSinceLastRed = 0; // Compteur de cartes depuis la dernière carte rouge
 
+// Ajouter au début du fichier, après les variables globales
+// Détecteur pour le navigateur intégré d'Instagram
+let isInInstagramBrowser = false;
+
+// Fonction pour détecter si nous sommes dans le navigateur Instagram
+function detectInstagramBrowser() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    // Instagram utilise généralement "Instagram" dans son user-agent
+    isInInstagramBrowser = userAgent.includes('instagram') || 
+                          // Certaines versions peuvent utiliser FB
+                          (userAgent.includes('fb') && !userAgent.includes('firefox')) ||
+                          // Détection basée sur le référent
+                          document.referrer.includes('instagram');
+    
+    console.log("Détection navigateur Instagram:", isInInstagramBrowser);
+    
+    // Ajouter une classe au body si on est dans Instagram
+    if (isInInstagramBrowser) {
+        document.body.classList.add('instagram-browser');
+    }
+}
+
+// Supprimer les avertissements de la console liés à YouTube
+if (window.console) {
+    // Sauvegarde des fonctions originales de la console
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
+    
+    // Filtrer les messages d'erreur relatifs à YouTube et Feature Policy
+    console.error = function(...args) {
+        if (args.length > 0) {
+            const message = String(args[0]);
+            if (message.includes('Feature Policy') || 
+                message.includes('doubleclick') || 
+                message.includes('ad_status') || 
+                message.includes('unreachable code') ||
+                message.includes('CORS') ||
+                message.includes('same-origin') ||
+                message.includes('Content-Security-Policy')) {
+                // Ignorer ces erreurs
+                return;
+            }
+        }
+        // Passer les autres erreurs à la fonction originale
+        originalConsoleError.apply(console, args);
+    };
+    
+    // Filtrer les avertissements relatifs à YouTube
+    console.warn = function(...args) {
+        if (args.length > 0) {
+            const message = String(args[0]);
+            if (message.includes('Feature Policy') || 
+                message.includes('doubleclick') || 
+                message.includes('ad_status') ||
+                message.includes('CORS')) {
+                // Ignorer ces avertissements
+                return;
+            }
+        }
+        // Passer les autres avertissements à la fonction originale
+        originalConsoleWarn.apply(console, args);
+    };
+}
+
 // Initialize all DOM elements
 let domElements;
 
@@ -43,9 +107,6 @@ function loadYouTubeAPI() {
     
     return new Promise((resolve) => {
         console.log("Chargement de l'API YouTube...");
-        // Créer la balise script pour l'API YouTube
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
         
         // Définir une fonction temporaire pour être notifié quand l'API est prête
         window.onYouTubeIframeAPIReady = function() {
@@ -54,8 +115,15 @@ function loadYouTubeAPI() {
             resolve();
         };
         
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        // Charger l'API YouTube en créant un élément script dans le document
+        // au lieu d'utiliser le tag.crossOrigin qui peut causer des problèmes CORS
+        if (!document.getElementById('youtube-iframe-api')) {
+            const tag = document.createElement('script');
+            tag.id = 'youtube-iframe-api';
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
     });
 }
 
@@ -977,7 +1045,7 @@ async function loadYouTubeVideo(videoId) {
         youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
             playerVars: {
-                'autoplay': 0, // On va contrôler la lecture via notre interface
+                'autoplay': isInInstagramBrowser ? 0 : 0, // Toujours désactiver l'autoplay pour Instagram
                 'controls': 0, // Désactiver les contrôles natifs
                 'showinfo': 0,
                 'modestbranding': 1,
@@ -987,7 +1055,7 @@ async function loadYouTubeVideo(videoId) {
                 'disablekb': 1, // Désactiver les contrôles clavier
                 'cc_load_policy': 0,
                 'color': 'white',
-                'playsinline': 1,
+                'playsinline': 1, // Important pour la lecture mobile
                 'origin': window.location.origin,
                 'enablejsapi': 1
             },
@@ -997,6 +1065,10 @@ async function loadYouTubeVideo(videoId) {
                 'onError': onPlayerError
             }
         });
+        
+        // Ajouter une propriété pour suivre si on a déjà fait jouer dans Instagram
+        youtubePlayer.instagramFirstPlay = false;
+        
     } catch (error) {
         console.error("Erreur lors du chargement de la vidéo:", error);
         isLoadingVideo = false;
@@ -1018,6 +1090,17 @@ function createCustomYouTubeOverlay() {
     // Créer l'overlay principal
     const overlay = document.createElement('div');
     overlay.className = 'youtube-custom-overlay';
+    
+    // Si dans Instagram, ajouter une classe spéciale et un message
+    if (isInInstagramBrowser) {
+        overlay.classList.add('instagram-mode');
+        
+        // Ajouter un bouton de lecture visible pour Instagram
+        const playButton = document.createElement('div');
+        playButton.className = 'instagram-play-button';
+        playButton.innerHTML = '<div class="play-icon">▶</div><div class="play-text">Appuyez pour lire</div>';
+        overlay.appendChild(playButton);
+    }
     
     // Ajouter l'indicateur central pour play/pause
     const centerIndicator = document.createElement('div');
@@ -1089,19 +1172,30 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
         
         try {
             // Lire ou mettre en pause la vidéo selon l'état actuel
-            if (isPlaying) {
+            const state = youtubePlayer.getPlayerState();
+            
+            // Dans Instagram, forcer la lecture la première fois peu importe l'état
+            if (isInInstagramBrowser && !youtubePlayer.instagramFirstPlay) {
+                youtubePlayer.playVideo();
+                youtubePlayer.instagramFirstPlay = true;
+                isPlaying = true;
+                overlay.classList.add('playing');
+                showCenterIndicator('❚❚'); // Afficher l'icône pause
+                return;
+            }
+            
+            // Comportement normal pour les autres cas
+            if (state === YT.PlayerState.PLAYING) {
                 youtubePlayer.pauseVideo();
                 overlay.classList.remove('playing');
                 showCenterIndicator('▶'); // Afficher l'icône play
+                isPlaying = false;
             } else {
                 youtubePlayer.playVideo();
                 overlay.classList.add('playing');
                 showCenterIndicator('❚❚'); // Afficher l'icône pause
+                isPlaying = true;
             }
-            
-            // Inverser l'état de lecture
-            isPlaying = !isPlaying;
-            
         } catch (e) {
             console.error("Erreur lors du basculement lecture/pause:", e);
         }
@@ -1109,10 +1203,24 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
     
     // Écouter les clics sur l'overlay principal pour play/pause
     overlay.addEventListener('click', function(e) {
-        // Ignorer si le clic est sur les contrôles
-        if (e.target.closest('.custom-video-controls')) return;
-        
-        togglePlayPause();
+        // Si dans Instagram, rendre le clic toujours efficace
+        if (isInInstagramBrowser || !e.target.closest('.custom-video-controls')) {
+            // Ignorer si le clic est sur les contrôles sauf dans Instagram
+            togglePlayPause();
+            
+            // Si dans Instagram, faire disparaître le message après le clic
+            if (isInInstagramBrowser && overlay.classList.contains('instagram-mode')) {
+                const playButton = overlay.querySelector('.instagram-play-button');
+                if (playButton) {
+                    playButton.style.opacity = '0';
+                    setTimeout(() => {
+                        playButton.style.display = 'none';
+                    }, 500);
+                }
+                // Retirer la classe mode Instagram après le premier clic
+                overlay.classList.remove('instagram-mode');
+            }
+        }
     });
     
     // Gérer le clic sur la barre de progression
@@ -1202,8 +1310,10 @@ function onPlayerReady(event) {
     // Créer l'overlay personnalisé pour contrôler la vidéo
     createCustomYouTubeOverlay();
     
-    // Lancer la lecture automatiquement
-    event.target.playVideo();
+    // Lancer la lecture automatiquement seulement si on n'est pas dans Instagram
+    if (!isInInstagramBrowser) {
+        event.target.playVideo();
+    }
     
     // Émettre un événement personnalisé
     document.dispatchEvent(new Event('YT.PlayerState.PLAYING'));
@@ -1664,24 +1774,38 @@ function updateSelectedCard(scaleRatio) {
     }
 }
 
-// Fonction pour vérifier si l'appareil est un téléphone mobile
-function isMobileDevice() {
-    return (
-        navigator.userAgent.match(/Android/i) ||
-        navigator.userAgent.match(/webOS/i) ||
-        navigator.userAgent.match(/iPhone/i) ||
-        navigator.userAgent.match(/iPad/i) ||
-        navigator.userAgent.match(/iPod/i) ||
-        navigator.userAgent.match(/BlackBerry/i) ||
-        navigator.userAgent.match(/Windows Phone/i)
-    );
-}
-
 // Fonction pour vérifier l'orientation de l'appareil et afficher le message si nécessaire
 function checkOrientation() {
-    // Le message d'orientation n'est plus nécessaire - on affiche toujours le contenu
-    const orientationMessage = document.getElementById('orientation-message');
-    orientationMessage.style.display = 'none';
+    // "Vertical" si la largeur est strictement inférieure à 80% de la hauteur
+    const isVertical = window.innerWidth < window.innerHeight * 0.8;
+    if (isVertical) {
+        applyVerticalUI();
+    } else {
+        removeVerticalUI();
+    }
+}
+
+function applyVerticalUI() {
+    // SECTION À MODIFIER POUR CUSTOM INTERFACE VERTICALE
+    // === Titre spécial (DROP sur la première ligne, THE MIC dessous et plus petit) ===
+
+    // On découpe le titre en 2 lignes, avec The Mic plus petit
+    domElements.title.innerHTML = `
+    <span class="drop-vertical">DROP</span><br>
+    <span class="themic-vertical">THE MIC</span>
+    `;
+
+    // Ajoute d'autres overrides visuels ici, ex : masquer/montrer des éléments, réorganiser, etc.
+    // ...
+}
+
+function removeVerticalUI() {
+    const h1 = document.querySelector('h1');
+    if (h1.classList.contains('vertical-title')) {
+        h1.classList.remove('vertical-title');
+        h1.innerHTML = 'DROP THE MIC';
+    }
+    // Remettre ici les éléments à la normale si besoin
 }
 
 // Initialiser les variables CSS au chargement de la page
@@ -1709,6 +1833,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up card hover effects
     setupCardHoverEffects();
+    
+    // Détecter si nous sommes dans le navigateur Instagram
+    detectInstagramBrowser();
 });
 
 // Function to handle window resize with debounce
