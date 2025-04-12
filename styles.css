@@ -374,7 +374,6 @@ h1.hidden {
     transform: translateY(100px) scale(0.8);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     visibility: hidden;
-    will-change: opacity;
 }
 
 /* Position de la carte sélectionnée */

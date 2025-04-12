@@ -1533,7 +1533,7 @@ function updateTextPositions() {
 
     // Position du texte du bas
     const bottomTextElement = document.querySelector('.bottom-text');
-    const bottomTextTopReference = 840; // proche du bas en 1080p
+    const bottomTextTopReference = 900; // proche du bas en 1080p
     bottomTextElement.style.position = 'fixed';
     bottomTextElement.style.top = `${marginVertical + (bottomTextTopReference * scaleRatio)}px`;
     bottomTextElement.style.bottom = 'auto';
@@ -2394,14 +2394,11 @@ function updateDecorativeCardsVertical() {
             position = TopPositions[index % TopPositions.length];
             
             // Calculer la position verticale - en haut de l'écran
-            // Les valeurs 'top' dans TopPositions sont des pourcentages (0-100) de la hauteur supérieure
-            const verticalPercent = (position.bottom +90) / 100;
-            const topPosition = marginVertical + (verticalPercent * (referenceHeight/2) * scaleRatio);
+            // Fixer les cartes directement au bord supérieur
+            const topPosition = -100* scaleRatio; // Réduire la zone pour coller au bord supérieur
             
             // Calculer la position horizontale
-            // Distribuer les cartes sur toute la largeur
-            // Les valeurs 'left' dans TopPositions sont des décalages relatifs
-            const horizontalPercent = (position.left) / 100; // Convertir en pourcentage centré (0-100)
+            const horizontalPercent = (position.left) / 100;
             const leftPosition = (horizontalPercent * referenceWidth * scaleRatio * spreadMultiplier) + marginHorizontal;
             
             // Appliquer les positions
@@ -2409,25 +2406,21 @@ function updateDecorativeCardsVertical() {
             card.style.left = `${leftPosition}px`;
             card.style.bottom = 'auto';
             card.style.right = 'auto';
-        } else {
+        } else { 
             // Utiliser les positions du bas pour la seconde moitié des cartes
             position = BottomPositions[(index - midPoint) % BottomPositions.length];
             
             // Calculer la position verticale - en bas de l'écran
-            // Les valeurs 'top' dans BottomPositions sont des pourcentages (0-100) de la hauteur inférieure
-            const verticalPercent = (position.top +90) / 100;
-            const bottomPosition = marginVertical + (referenceHeight/2) + (verticalPercent * (referenceHeight/2) * scaleRatio);
+            const bottomPosition = -100  * scaleRatio;
             
             // Calculer la position horizontale
-            // Distribuer les cartes sur toute la largeur
-            // Les valeurs 'left' dans BottomPositions sont des décalages relatifs
-            const horizontalPercent = (position.left) / 100; // Convertir en pourcentage centré (0-100)
+            const horizontalPercent = (position.left) / 100;
             const leftPosition = (horizontalPercent * referenceWidth * scaleRatio * spreadMultiplier) + marginHorizontal;
             
             // Appliquer les positions
-            card.style.top = `${bottomPosition}px`;
+            card.style.bottom = `${bottomPosition}px`;
             card.style.left = `${leftPosition}px`;
-            card.style.bottom = 'auto';
+            card.style.top = 'auto';
             card.style.right = 'auto';
         }
         
