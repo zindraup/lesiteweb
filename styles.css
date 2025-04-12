@@ -426,7 +426,7 @@ h1.hidden {
 }
 
 .card-back span {
-    color: black !important;
+    color: black;
     font-size: 2em;
     font-weight: bold;
     text-transform: uppercase;
@@ -439,15 +439,10 @@ h1.hidden {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    
-    /* Assurer que le texte est visible avec UltimaDark */
-    mix-blend-mode: normal;
-    text-shadow: 0px 0px 2px rgba(255,255,255,0.5);
 }
 
 .card-back.metal-hard span {
-    color: #ff0000 !important;
-    text-shadow: 0px 0px 2px rgba(255,255,255,0.5);
+    color: #ff0000;
 }
 
 /* Effets d'animation des cartes au survol */
@@ -1013,137 +1008,4 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
 
 .youtube-custom-overlay:hover .progress-track {
     opacity: 1; /* 100% d'opacité au survol */
-}
-
-.drop-vertical {
-    display: block;
-    font-size: inherit; /* titre normal */
-    line-height: 1.1;
-}
-.themic-vertical {
-    display: block;
-    font-size: 66%; /* environ 50% plus petit (66% ≈ sqrt(0.5)), ajuste à 50% si tu veux */
-    line-height: 1;
-    letter-spacing: 1px;
-    font-weight: normal;
-}
-
-/* Styles spécifiques pour contrer les effets de UltimaDark sur Firefox */
-@-moz-document url-prefix() {
-    .card-back span {
-        color: black !important;
-        background-color: transparent !important;
-        text-shadow: 0px 0px 3px rgba(255,255,255,0.8) !important;
-        opacity: 1 !important;
-        filter: none !important;
-    }
-    
-    .card-back.metal-hard span {
-        color: #ff0000 !important;
-        background-color: transparent !important;
-        text-shadow: 0px 0px 3px rgba(255,255,255,0.8) !important;
-        opacity: 1 !important;
-        filter: none !important;
-    }
-}
-
-.card-text-protected {
-    position: relative;
-    display: inline-block;
-    color: black !important;
-    background-color: transparent !important;
-    z-index: 2;
-    /* Force la couleur du texte même avec UltimaDark */
-    -webkit-text-fill-color: black !important;
-    -moz-text-fill-color: black !important;
-    /* Contourne certains filtres d'inversion */
-    filter: none !important;
-    backdrop-filter: none !important;
-    /* Assure une meilleure lisibilité */
-    text-shadow: 0px 0px 3px rgba(255,255,255,0.7) !important;
-}
-
-.card-back.metal-hard .card-text-protected {
-    color: #ff0000 !important;
-    -webkit-text-fill-color: #ff0000 !important;
-    -moz-text-fill-color: #ff0000 !important;
-}
-
-/* Hack supplémentaire pour Firefox et UltimaDark */
-@media screen and (-webkit-min-device-pixel-ratio:0), screen and (min--moz-device-pixel-ratio:0) {
-    .card-text-protected::before {
-        content: "";
-        position: absolute;
-        top: -5px;
-        left: -5px;
-        right: -5px;
-        bottom: -5px;
-        background-color: transparent;
-        z-index: -1;
-        border-radius: 3px;
-    }
-    
-    .card-back.metal-hard .card-text-protected::before {
-        background-color: transparent;
-    }
-}
-
-/* Styles spécifiques pour le navigateur Instagram */
-.instagram-browser .youtube-custom-overlay {
-    pointer-events: auto !important;
-}
-
-/* Bouton de lecture spécial pour Instagram */
-.instagram-play-button {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.6);
-    z-index: 20;
-    transition: opacity 0.5s ease;
-    cursor: pointer;
-}
-
-.play-icon {
-    font-size: 50px;
-    color: #ffcc00;
-    margin-bottom: 10px;
-    text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
-    animation: pulse-play 1.5s infinite ease-in-out;
-}
-
-.play-text {
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
-}
-
-@keyframes pulse-play {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-/* S'assurer que les contrôles sont cliquables dans Instagram */
-.instagram-browser .custom-video-controls {
-    pointer-events: auto !important;
-    opacity: 1 !important;
-}
-
-/* Ajuster la taille du player pour Instagram */
-.instagram-browser .video-container {
-    z-index: 10;
-}
-
-/* Rendre l'overlay vraiment interactif pour Instagram */
-.instagram-mode {
-    pointer-events: auto !important;
 }

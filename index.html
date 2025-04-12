@@ -2,66 +2,40 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Drop The Mic - SAINT-DROP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- En-têtes de sécurité temporairement désactivés -->
+    <!--
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
+    -->
     
-    <!-- Favicon basique utilisant une image existante -->
-    <link rel="icon" href="images/favicon.png" type="image/png">
-    <link rel="shortcut icon" href="images/favicon.png" type="image/png">
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Méta-informations pour le référencement -->
-    <meta name="description" content="DROP THE MIC - Découvrez les meilleures prods en tirant une carte au hasard">
-    <meta name="keywords" content="DROP THE MIC, musique, production, beats, trap, boombap, metal, drill">
-    <meta name="author" content="SAINT-DROP">
-    
-    <!-- Contrôle du comportement des moteurs de recherche -->
-    <meta name="robots" content="index, follow">
-    <meta name="googlebot" content="index, follow">
-    
-    <!-- OpenGraph pour partage sur les réseaux sociaux -->
-    <meta property="og:title" content="Drop The Mic - SAINT-DROP">
-    <meta property="og:description" content="Découvrez les meilleures prods en tirant une carte au hasard">
-    <meta property="og:image" content="images/favicon.png">
-    <meta property="og:url" content="https://dropthemic.saint-drop.com">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Drop The Mic - SAINT-DROP">
-    <meta property="og:locale" content="fr_FR">
-    
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Drop The Mic - SAINT-DROP">
-    <meta name="twitter:description" content="Découvrez les meilleures prods en tirant une carte au hasard">
-    <meta name="twitter:image" content="images/favicon.png">
-    <meta name="twitter:creator" content="@SAINTDROP">
-    
-    <!-- Couleur du thème pour mobile -->
-    <meta name="theme-color" content="#121212">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="application-name" content="Drop The Mic - SAINT-DROP">
-    <meta name="apple-mobile-web-app-title" content="Drop The Mic - SAINT-DROP">
-    <meta name="msapplication-TileColor" content="#121212">
-    <meta name="msapplication-navbutton-color" content="#121212">
-    
-    <!-- Pour la compatibilité avec Internet Explorer -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    
-    <!-- Optimisations de performance -->
-    <link rel="preconnect" href="https://www.youtube.com">
-    <link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
-    <link rel="dns-prefetch" href="https://www.youtube.com">
-    <link rel="dns-prefetch" href="https://i.ytimg.com">
-    <link rel="preload" href="images/dos_de_carte.png" as="image">
-    <link rel="preload" href="images/carte_rouge.png" as="image">
-    <link rel="preload" href="images/carte_noire.png" as="image">
-    <link rel="preload" href="styles.css" as="style">
-    <link rel="preload" href="script.js" as="script">
-    
+    <script>
+        // Vérifier si nous sommes sur GitHub Pages ou un autre serveur de production
+        const isProduction = !window.location.hostname.includes('localhost') && 
+                           !window.location.hostname.includes('127.0.0.1');
+        
+        // Content-Security-Policy et redirection HTTPS temporairement désactivées
+        /*
+        if (isProduction) {
+            const meta = document.createElement('meta');
+            meta.httpEquiv = "Content-Security-Policy";
+            meta.content = "default-src 'self' https:; script-src 'self' 'unsafe-inline' https://www.youtube.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https://www.youtube.com; connect-src 'self' https:; upgrade-insecure-requests; block-all-mixed-content";
+            document.head.appendChild(meta);
+            
+            // Rediriger vers HTTPS si actuellement sur HTTP et en production
+            if (window.location.protocol === 'http:') {
+                window.location.href = window.location.href.replace('http:', 'https:');
+            }
+        }
+        */
+    </script>
+    <title>DROP THE MIC</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    
     <!-- Message d'orientation pour mobile -->
     <div id="orientation-message">
         <div class="orientation-content">
@@ -95,37 +69,37 @@
                 <div class="card" data-index="0" onclick="revealCard(this)">
                     <div class="card-inner">
                         <div class="card-front"></div>
-                        <div class="card-back"><span class="card-text-protected"><!-- Texte du style inséré par JS --></span></div>
+                        <div class="card-back"><span></span></div>
                     </div>
                 </div>
                 <div class="card" data-index="1" onclick="revealCard(this)">
                     <div class="card-inner">
                         <div class="card-front"></div>
-                        <div class="card-back"><span class="card-text-protected"><!-- Texte du style inséré par JS --></span></div>
+                        <div class="card-back"><span></span></div>
                     </div>
                 </div>
                 <div class="card" data-index="2" onclick="revealCard(this)">
                     <div class="card-inner">
                         <div class="card-front"></div>
-                        <div class="card-back"><span class="card-text-protected"><!-- Texte du style inséré par JS --></span></div>
+                        <div class="card-back"><span></span></div>
                     </div>
                 </div>
                 <div class="card" data-index="3" onclick="revealCard(this)">
                     <div class="card-inner">
                         <div class="card-front"></div>
-                        <div class="card-back"><span class="card-text-protected"><!-- Texte du style inséré par JS --></span></div>
+                        <div class="card-back"><span></span></div>
                     </div>
                 </div>
                 <div class="card" data-index="4" onclick="revealCard(this)">
                     <div class="card-inner">
                         <div class="card-front"></div>
-                        <div class="card-back"><span class="card-text-protected"><!-- Texte du style inséré par JS --></span></div>
+                        <div class="card-back"><span></span></div>
                     </div>
                 </div>
                 <div class="card" data-index="5" onclick="revealCard(this)">
                     <div class="card-inner">
                         <div class="card-front"></div>
-                        <div class="card-back"><span class="card-text-protected"><!-- Texte du style inséré par JS --></span></div>
+                        <div class="card-back"><span></span></div>
                     </div>
                 </div>
             </div>
