@@ -10,6 +10,7 @@ let weightedCategories = []; // Tableau pondéré précalculé pour la sélectio
 let youtubeAPILoaded = false; // Flag pour suivre si l'API YouTube est déjà chargée
 let isLoadingVideo = false; // Flag pour suivre si une vidéo est en cours de chargement
 let videoLoadingCancelled = false; // Flag pour indiquer si le chargement a été annulé
+let instagramMessageShown = false; // Flag pour suivre si le message Instagram a déjà été affiché
 
 // Variables pour la sélection aléatoire améliorée
 let usedRedProductions = []; // Pour stocker les productions rouges déjà utilisées
@@ -1798,6 +1799,81 @@ function isInstagramBrowser() {
     return false;
 }
 
+// Fonction pour créer et afficher le message Instagram
+function showInstagramMessage() {
+    // Ne pas afficher le message si déjà affiché
+    if (instagramMessageShown) {
+        return;
+    }
+    
+    // Créer le conteneur du message
+    const messageContainer = document.createElement('div');
+    messageContainer.className = 'instagram-message';
+    
+    // Appliquer les styles au conteneur
+    Object.assign(messageContainer.style, {
+        position: 'fixed',
+        top: '10px',
+        left: '10px',
+        right: '10px',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        color: 'white',
+        padding: '15px',
+        borderRadius: '8px',
+        zIndex: '10000',
+        textAlign: 'center',
+        fontSize: '16px',
+        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    });
+    
+    // Texte du message avec une flèche pointant vers le haut à droite
+    const messageText = document.createElement('div');
+    messageText.innerHTML = 'Pour une meilleure expérience, ouvrez cette page dans votre navigateur web <span style="font-size: 20px; margin-left: 10px;">&#8599;</span>';
+    
+    // Bouton de fermeture
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '✕';
+    Object.assign(closeButton.style, {
+        position: 'absolute',
+        right: '10px',
+        top: '10px',
+        backgroundColor: 'transparent',
+        border: 'none',
+        color: 'white',
+        fontSize: '18px',
+        cursor: 'pointer'
+    });
+    
+    // Ajouter les éléments au conteneur
+    messageContainer.appendChild(messageText);
+    messageContainer.appendChild(closeButton);
+    
+    // Ajouter le conteneur à la page
+    document.body.appendChild(messageContainer);
+    
+    // Gestionnaire d'événement pour fermer le message
+    closeButton.addEventListener('click', function() {
+        messageContainer.style.display = 'none';
+    });
+    
+    // Marquer le message comme affiché
+    instagramMessageShown = true;
+    
+    // Faire disparaître le message après 10 secondes
+    setTimeout(() => {
+        messageContainer.style.opacity = '0';
+        messageContainer.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => {
+            if (messageContainer.parentNode) {
+                messageContainer.parentNode.removeChild(messageContainer);
+            }
+        }, 500);
+    }, 10000);
+}
+
 // Initialiser les variables CSS au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     // Mettre à jour les variables CSS globales
@@ -1805,6 +1881,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize DOM elements
     initializeDOMElements();
+    
+    // Vérifier si nous sommes dans le navigateur Instagram
+    if (isInstagramBrowser()) {
+        // Afficher le message pour suggérer d'ouvrir dans un navigateur web
+        showInstagramMessage();
+    }
     
     // Set up dynamic text positioning
     updateTextPositions();
