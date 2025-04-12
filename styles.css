@@ -892,3 +892,76 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
 .youtube-custom-overlay:hover .progress-track {
     opacity: 1; /* 100% d'opacité au survol */
 }
+
+/* Styles pour le titre séparé en mode vertical */
+.vertical-layout .main-title-drop,
+.vertical-layout .main-title-themic {
+    position: fixed;
+    left: 0;
+    right: 0;
+    width: 100%;
+    color: transparent;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transform: scaleY(1.15);
+    opacity: 1;
+    transition: all 0.5s ease;
+    font-family: 'SAINT-DROP', 'Impact', 'Arial Black', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-smooth: always;
+    will-change: transform;
+}
+
+.vertical-layout .main-title-drop::before,
+.vertical-layout .main-title-drop::after,
+.vertical-layout .main-title-themic::before,
+.vertical-layout .main-title-themic::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.vertical-layout .main-title-drop::before,
+.vertical-layout .main-title-themic::before {
+    z-index: -2;
+    text-shadow: 
+        0 0 10px rgb(0, 0, 0),
+        0 0 20px rgba(0, 0, 0, 0.8),
+        0 0 30px rgba(0, 0, 0, 0.8),
+        0 0 40px rgba(0, 0, 0, 0.8),
+        2px 2px 2px rgba(0, 0, 0, 0.9),
+        0 0 70px rgba(0, 30, 255, 0.3),
+        0 0 120px rgba(0, 30, 255, 0.2);
+    color: transparent;
+}
+
+.vertical-layout .main-title-drop::after,
+.vertical-layout .main-title-themic::after {
+    z-index: -1;
+    background: linear-gradient(
+        90deg,
+        rgb(255, 168, 36) 0%,
+        rgb(255, 226, 64) 50%,
+        rgb(215, 142, 31) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.vertical-layout .main-title-drop.hidden,
+.vertical-layout .main-title-themic.hidden {
+    opacity: 0;
+    transform: translateY(-20px) scaleY(1.15);
+    pointer-events: none;
+}
+
+/* Cacher le titre H1 original en mode vertical */
+.vertical-layout h1 {
+    display: none;
+}
