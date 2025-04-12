@@ -47,54 +47,11 @@
     <link rel="preload" href="images/carte_noire.png" as="image" />
     <link rel="preload" href="styles.css" as="style" />
     <link rel="preload" href="script.js" as="script" />
-    <!-- En-têtes de sécurité temporairement désactivés -->
-    <!--
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
-    -->
 
-    <script>
-      // Vérifier si nous sommes sur GitHub Pages ou un autre serveur de production
-      const isProduction =
-        !window.location.hostname.includes("localhost") &&
-        !window.location.hostname.includes("127.0.0.1");
-
-      // Content-Security-Policy et redirection HTTPS temporairement désactivées
-      /*
-        if (isProduction) {
-            const meta = document.createElement('meta');
-            meta.httpEquiv = "Content-Security-Policy";
-            meta.content = "default-src 'self' https:; script-src 'self' 'unsafe-inline' https://www.youtube.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https://www.youtube.com; connect-src 'self' https:; upgrade-insecure-requests; block-all-mixed-content";
-            document.head.appendChild(meta);
-            
-            // Rediriger vers HTTPS si actuellement sur HTTP et en production
-            if (window.location.protocol === 'http:') {
-                window.location.href = window.location.href.replace('http:', 'https:');
-            }
-        }
-        */
-    </script>
-    <title>DROP THE MIC</title>
+    <title>DROP THE MIC by SAINT-DROP</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Message d'orientation pour mobile -->
-    <div id="orientation-message">
-      <div class="orientation-content">
-        <div class="rotate-animation">
-          <div class="phone-icon">
-            <div class="phone-body"></div>
-            <div class="phone-screen"></div>
-          </div>
-          <div class="rotate-arrow"></div>
-        </div>
-        <p>TOURNE TON PHONE</p>
-        <p class="smaller">VERSION VERTICALE EN CONSTRUCTION...</p>
-      </div>
-    </div>
 
     <!-- Conteneur principal -->
     <div class="content-wrapper">

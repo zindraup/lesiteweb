@@ -1677,20 +1677,10 @@ function isMobileDevice() {
     );
 }
 
-// Fonction pour vérifier l'orientation de l'appareil et afficher le message si nécessaire
-function checkOrientation() {
-    // Le message d'orientation n'est plus nécessaire - on affiche toujours le contenu
-    const orientationMessage = document.getElementById('orientation-message');
-    orientationMessage.style.display = 'none';
-}
-
 // Initialiser les variables CSS au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     // Mettre à jour les variables CSS globales
     updateGlobalCSSVariables();
-    
-    // Vérifier l'orientation de l'appareil
-    checkOrientation();
     
     // Initialize DOM elements
     initializeDOMElements();
@@ -1700,9 +1690,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add resize event listener to update positions when window is resized
     window.addEventListener('resize', handleWindowResize);
-    
-    // Add orientation change event listener
-    window.addEventListener('orientationchange', checkOrientation);
     
     // Initialize game
     initializeGame();
@@ -1721,8 +1708,6 @@ function handleWindowResize() {
     
     // Set a timeout to avoid excessive function calls during resize
     resizeTimeout = setTimeout(() => {
-        // Vérifier l'orientation de l'appareil
-        checkOrientation();
         
         // Force recomputation of CSS variables to capture any changes to --main-title-size
         document.documentElement.style.setProperty('--reflow-trigger', Date.now());
