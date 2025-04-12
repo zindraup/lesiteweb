@@ -440,8 +440,12 @@ class AnimationSequence {
         // Appliquer le style spécial pour les cartes rouges
         if (randomProduction.isRed) {
             cardBack.classList.add('metal-hard');
+            // Rouge pour les cartes metal/hard
+            cardBackSpan.style.setProperty('color', '#ff0000', 'important');
         } else {
             cardBack.classList.remove('metal-hard');
+            // Noir pour toutes les autres cartes (trap, drill, etc.)
+            cardBackSpan.style.setProperty('color', 'black', 'important');
         }
 
         // Masquer le titre principal
@@ -617,6 +621,9 @@ async function initializeGame() {
 
     // Réinitialiser l'interface
     resetUI();
+    
+    // Forcer les couleurs des textes contre le darkmode
+    forceDarkModeTextColors();
 
     // Identifier la carte sélectionnée (s'il y en a une)
     const revealedCard = Array.from(domElements.cards).find(card =>
@@ -1578,7 +1585,7 @@ function updateTextPositions() {
         cardsContainer.style.transform = 'translateY(-50%)';
         cardsContainer.style.left = '0';
         cardsContainer.style.right = '0';
-
+        
         // Ajuster les cartes
         updateCardsFan(scaleRatio);
     }
@@ -2050,6 +2057,9 @@ function handleWindowResize() {
 
         // Mettre à jour les variables CSS globales
         updateGlobalCSSVariables();
+        
+        // Forcer les couleurs des textes contre le darkmode après redimensionnement
+        forceDarkModeTextColors();
 
         // Update the positions of all elements
         updateTextPositions();
@@ -2366,6 +2376,9 @@ function updateTextPositionsVertical() {
             downloadButtonIcon.style.height = `${36 * scaleRatio}px`;
         }
     }
+
+    // Appliquer également les couleurs après le positionnement
+    forceDarkModeTextColors();
 }
 
 // Fonction pour mettre à jour les cartes décoratives en mode vertical
@@ -2459,4 +2472,52 @@ function updateDecorativeCardsVertical() {
         // Appliquer la rotation
         card.style.transform = `rotate(${position.rotate}deg)`;
     });
+}
+
+// Fonction pour forcer les couleurs des textes contre le darkmode
+function forceDarkModeTextColors() {
+    // Forcer la couleur du texte H1 (titre principal)
+    const h1Element = document.querySelector('h1');
+    if (h1Element) {
+        h1Element.querySelectorAll('*').forEach(el => {
+            el.style.setProperty('color', 'transparent', 'important');
+        });
+        
+        // Forcer les effets de gradient du titre
+        const h1After = document.styleSheets;
+        for (let i = 0; i < document.styleSheets.length; i++) {
+            try {
+                const styleSheet = document.styleSheets[i];
+                const rules = styleSheet.cssRules || styleSheet.rules;
+                for (let j = 0; j < rules.length; j++) {
+                    if (rules[j].selectorText && rules[j].selectorText.includes('h1::after')) {
+                        // Réappliquer le background-clip et le color
+                        h1Element.style.setProperty('-webkit-background-clip', 'text', 'important');
+                        h1Element.style.setProperty('background-clip', 'text', 'important');
+                        h1Element.style.setProperty('color', 'transparent', 'important');
+                    }
+                }
+            } catch (e) {
+                // Ignorer les erreurs CORS sur les feuilles de style externes
+                console.log("Impossible d'accéder à certaines feuilles de style:", e);
+            }
+        }
+    }
+    
+    // Forcer la couleur du texte des cartes noires
+    document.querySelectorAll('.card-back:not(.metal-hard) span').forEach(span => {
+        span.style.setProperty('color', 'black', 'important');
+    });
+
+    // Forcer la couleur sur les titres séparés en mode vertical
+    const dropElement = document.querySelector('.main-title-drop');
+    const themicElement = document.querySelector('.main-title-themic');
+    
+    if (dropElement) {
+        dropElement.style.setProperty('color', 'transparent', 'important');
+    }
+    
+    if (themicElement) {
+        themicElement.style.setProperty('color', 'transparent', 'important');
+    }
 }
