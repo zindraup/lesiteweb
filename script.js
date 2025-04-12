@@ -310,7 +310,11 @@ function resetUI() {
 
         // Masquer les boutons
         domElements.buyButton.style.opacity = '0';
+        domElements.buyButton.style.visibility = 'hidden';
+        domElements.buyButton.style.pointerEvents = 'none';
         domElements.downloadButton.style.opacity = '0';
+        domElements.downloadButton.style.visibility = 'hidden';
+        domElements.downloadButton.style.pointerEvents = 'none';
 
         // Masquer le titre de la production et le BPM
         domElements.prodTitle.classList.remove('visible');
@@ -528,12 +532,20 @@ class AnimationSequence {
             // Mettre à jour l'apparence des boutons en fonction de la disponibilité du lien d'achat
             if (currentProduction && currentProduction.buy) {
                 domElements.buyButton.style.opacity = '1';
-                domElements.downloadButton.style.opacity = '1';
+                domElements.downloadButton.style.opacity = '1';           
+                domElements.buyButton.style.visibility = 'visible';
+                domElements.buyButton.style.pointerEvents = 'auto';
+                domElements.downloadButton.style.visibility = 'visible';
+                domElements.downloadButton.style.pointerEvents = 'auto';                
                 domElements.buyButton.style.cursor = 'pointer';
                 domElements.downloadButton.style.cursor = 'pointer';
             } else {
                 domElements.buyButton.style.opacity = '0.5';
                 domElements.downloadButton.style.opacity = '0.5';
+                domElements.buyButton.style.visibility = 'visible';
+                domElements.buyButton.style.pointerEvents = 'auto';
+                domElements.downloadButton.style.visibility = 'visible';
+                domElements.downloadButton.style.pointerEvents = 'auto'; 
                 domElements.buyButton.style.cursor = 'not-allowed';
                 domElements.downloadButton.style.cursor = 'not-allowed';
             }
@@ -1458,7 +1470,11 @@ async function handleRevealedCardClick(event) {
 
     // Masquer également les boutons et textes immédiatement
     domElements.buyButton.style.opacity = '0';
+    domElements.buyButton.style.visibility = 'hidden';
+    domElements.buyButton.style.pointerEvents = 'none';
     domElements.downloadButton.style.opacity = '0';
+    domElements.downloadButton.style.visibility = 'hidden';
+    domElements.downloadButton.style.pointerEvents = 'none';;
     domElements.prodTitle.classList.remove('visible');
     domElements.prodTitle.classList.add('hidden');
     domElements.bpmText.classList.remove('visible');
@@ -1985,7 +2001,7 @@ function handleWindowResize() {
 
     // Set a timeout to avoid excessive function calls during resize
     resizeTimeout = setTimeout(() => {
-        // Vérifier si l'orientation a changé
+        // Vérifier si l'orientation a changé        
         const currentOrientation = isVertical();
         const orientationChanged = currentOrientation !== lastOrientation;
 
@@ -1995,7 +2011,23 @@ function handleWindowResize() {
         // Si l'orientation a changé, faire une mise à jour plus complète
         if (orientationChanged) {
             console.log(`Orientation changée: mode ${currentOrientation ? 'vertical' : 'horizontal'}`);
-
+            // Si on passe du mode vertical au mode horizontal, masquer les titres séparés
+            if (!currentOrientation) {
+                // Récupérer les éléments de titre séparé
+                const dropElement = document.querySelector('.main-title-drop');
+                const themicElement = document.querySelector('.main-title-themic');
+                
+                // Les masquer s'ils existent
+                if (dropElement) dropElement.style.display = 'none';
+                if (themicElement) themicElement.style.display = 'none';
+            } else {
+                // En mode vertical, s'assurer que le titre H1 est caché et les titres séparés visibles
+                const dropElement = document.querySelector('.main-title-drop');
+                const themicElement = document.querySelector('.main-title-themic');
+                
+                if (dropElement) dropElement.style.display = '';
+                if (themicElement) themicElement.style.display = '';
+            }
             // Réinitialiser les positions de tous les éléments si une carte est révélée
             const revealedCard = document.querySelector('.card.revealed');
             if (revealedCard) {
