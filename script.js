@@ -220,7 +220,6 @@ fetch('prods.json')
 
 // Configuration des boutons d'achat et de téléchargement
 function setupButtonListeners() {
-    // Utiliser les références du cache DOM
     domElements.buyButton.addEventListener('click', () => {
         if (currentProduction && currentProduction.buy) {
             window.open(currentProduction.buy, '_blank');
@@ -230,8 +229,31 @@ function setupButtonListeners() {
     });
 
     domElements.downloadButton.addEventListener('click', () => {
-        if (currentProduction && currentProduction.download_pdf) {
-            window.open(currentProduction.download_pdf, '_blank');
+        if (!currentProduction) {
+            console.log("Aucune production sélectionnée pour téléchargement");
+            return;
+        }
+
+        const isMobile = isMobileDevice();
+        let downloadLink = null;
+        let linkType = '';
+        
+        if (isMobile && currentProduction.download_android) {
+            // Utiliser le lien spécifique aux téléphones si disponible
+            downloadLink = currentProduction.download_android;
+            linkType = 'téléphone';
+        } else if (!isMobile && currentProduction.download_pc) {
+            // Utiliser le lien spécifique aux PC si disponible
+            downloadLink = currentProduction.download_pc;
+            linkType = 'ordinateur';
+        } else if (currentProduction.buy) {
+            // Fallback sur le lien d'achat si aucun lien de téléchargement n'est disponible
+            downloadLink = currentProduction.buy;
+            linkType = 'achat (fallback)';
+        }
+        if (downloadLink) {
+            console.log(`Téléchargement via lien pour ${linkType}: ${downloadLink}`);
+            window.open(downloadLink, '_blank');
         } else {
             console.log("Aucun lien de téléchargement disponible pour cette production");
         }
@@ -543,7 +565,11 @@ class AnimationSequence {
             }
             
             // Gérer le bouton de téléchargement séparément
-            if (currentProduction && currentProduction.download_pdf) {
+            const isMobile = isMobileDevice();
+            const hasDownloadLink = (isMobile && currentProduction.download_android) || 
+                                   (!isMobile && currentProduction.download_pc);
+            
+            if (currentProduction && hasDownloadLink) {
                 domElements.downloadButton.style.opacity = '1';
                 domElements.downloadButton.style.visibility = 'visible';
                 domElements.downloadButton.style.pointerEvents = 'auto';
@@ -1583,7 +1609,7 @@ function updateTextPositions() {
         cardsContainer.style.transform = 'translateY(-50%)';
         cardsContainer.style.left = '0';
         cardsContainer.style.right = '0';
-
+        
         // Ajuster les cartes
         updateCardsFan(scaleRatio);
     }
@@ -2464,4 +2490,10 @@ function updateDecorativeCardsVertical() {
         // Appliquer la rotation
         card.style.transform = `rotate(${position.rotate}deg)`;
     });
+}
+
+// Fonction pour détecter si l'utilisateur est sur un appareil mobile
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           (window.innerWidth <= 768);
 }
