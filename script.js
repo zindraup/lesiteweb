@@ -1973,18 +1973,18 @@ function showInstagramMessage() {
     // Appliquer les styles au conteneur
     Object.assign(messageContainer.style, {
         position: 'fixed',
-        top: '10px',
-        left: '10px',
-        right: '10px',
+        top: 'calc(10px * var(--scale-ratio, 1))',
+        left: 'calc(10px * var(--scale-ratio, 1))',
+        right: 'calc(10px * var(--scale-ratio, 1))',
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         color: 'white',
-        padding: '15px',
-        borderRadius: '8px',
+        padding: 'calc(8px * var(--scale-ratio, 1))',
+        borderRadius: 'calc(8px * var(--scale-ratio, 1))',
         zIndex: '10000',
         textAlign: 'center',
-        fontSize: '16px',
+        fontSize: 'calc(13px * var(--scale-ratio, 1))',
         fontFamily: 'Arial, Helvetica, sans-serif', // Police basique
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0 calc(4px * var(--scale-ratio, 1)) calc(20px * var(--scale-ratio, 1)) rgba(0, 0, 0, 0.3)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -1992,7 +1992,7 @@ function showInstagramMessage() {
 
     // Texte du message avec instructions pour Instagram et flèche pointant vers le haut à droite
     const messageText = document.createElement('div');
-    messageText.innerHTML = 'Ouvre la page dans ton navigateur web, ici c\'est nul <span style="font-size: 20px; margin-left: 10px;">&#8599;</span>';
+    messageText.innerHTML = 'Ouvre la page dans ton navigateur web <span style="font-size:calc(13px * var(--scale-ratio, 1)); margin-left: calc(10px * var(--scale-ratio, 1));">&#8599;</span>';
 
     // Ajouter les éléments au conteneur
     messageContainer.appendChild(messageText);
