@@ -1023,8 +1023,8 @@ async function loadYouTubeVideo(videoId) {
         }
 
         // Adapter le style du conteneur vidéo pour Instagram
-        const isInsta = isInstagramBrowser();
-        if (isInsta) {
+        const isSpecial = isSpecialBrowser();
+        if (isSpecial) {
             applyInstagramVideoStyles();
         }
 
@@ -1032,8 +1032,8 @@ async function loadYouTubeVideo(videoId) {
         youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
             playerVars: {
-                'autoplay': isInsta ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
-                'controls': isInsta ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
+                'autoplay': isSpecial ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
+                'controls': isSpecial ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
                 'showinfo': 0,
                 'modestbranding': 1,
                 'rel': 0,
@@ -1120,7 +1120,7 @@ function createCustomYouTubeOverlay() {
     if (!videoContainer) return;
 
     // Ne pas créer d'overlay dans le navigateur Instagram
-    if (isInstagramBrowser()) {
+    if (isSpecialBrowser()) {
         console.log("Navigateur Instagram détecté, pas d'overlay personnalisé");
         return;
     }
@@ -1315,7 +1315,7 @@ function onPlayerReady(event) {
     // La vidéo est maintenant prête
     isLoadingVideo = false;
 
-    const inInstagramBrowser = isInstagramBrowser();
+    const inInstagramBrowser = isSpecialBrowser();
 
     // Gérer différemment selon le navigateur
     if (!inInstagramBrowser) {
@@ -1910,9 +1910,19 @@ function updateSelectedCard(scaleRatio) {
 }
 
 // Fonction pour détecter si nous sommes dans le navigateur Instagram
-function isInstagramBrowser() {
+function isSpecialBrowser() {
     // Vérifier si l'agent utilisateur contient "Instagram"
     if (navigator.userAgent.includes('Instagram')) {
+        return true;
+    }
+
+    // Vérifier si l'agent utilisateur contient "TikTok"
+    if (navigator.userAgent.includes('TikTok')) {
+        return true;
+    }
+    
+    // Vérifier si c'est un iPhone
+    if (navigator.userAgent.includes('iPhone')) {
         return true;
     }
 
@@ -1920,17 +1930,23 @@ function isInstagramBrowser() {
     if (document.referrer && document.referrer.includes('instagram.com')) {
         return true;
     }
+    
+    // Vérifier si l'URL de référence provient de TikTok
+    if (document.referrer && document.referrer.includes('tiktok.com')) {
+        return true;
+    }
 
-    // Certaines implémentations du WebView d'Instagram modifient window.navigator
+    // Certaines implémentations du WebView modifient window.navigator
     try {
-        if (window.navigator.userAgent.indexOf('Instagram') !== -1) {
+        if (window.navigator.userAgent.indexOf('Instagram') !== -1 || 
+            window.navigator.userAgent.indexOf('TikTok') !== -1) {
             return true;
         }
     } catch (e) {
         console.error("Erreur lors de la vérification de userAgent:", e);
     }
 
-    // Vérifier si nous sommes dans un iframe (méthode parfois utilisée par Instagram)
+    // Vérifier si nous sommes dans un iframe (méthode parfois utilisée par certaines apps)
     try {
         if (window !== window.top) {
             return true;
@@ -2002,7 +2018,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeDOMElements();
 
     // Vérifier si nous sommes dans le navigateur Instagram
-    if (isInstagramBrowser()) {
+    if (isSpecialBrowser()) {
         // Afficher le message pour suggérer d'ouvrir dans un navigateur web
         showInstagramMessage();
     }
