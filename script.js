@@ -10,6 +10,7 @@ let weightedCategories = []; // Tableau pondéré précalculé pour la sélectio
 let youtubeAPILoaded = false; // Flag pour suivre si l'API YouTube est déjà chargée
 let isLoadingVideo = false; // Flag pour suivre si une vidéo est en cours de chargement
 let videoLoadingCancelled = false; // Flag pour indiquer si le chargement a été annulé
+let instagramMessageShown = false; // Flag pour suivre si le message Instagram a déjà été affiché
 
 // Variables pour la sélection aléatoire améliorée
 let usedRedProductions = []; // Pour stocker les productions rouges déjà utilisées
@@ -315,103 +316,57 @@ function setupCardHoverEffects() {
 
 // Fonction commune pour réinitialiser l'interface utilisateur
 function resetUI() {
-    // Réinitialiser les classes pour les cartes
-    document.querySelectorAll('.card').forEach(card => {
-        card.classList.remove('selected', 'revealed', 'descend', 'fade-out');
-        
-        // Réinitialiser les transformations et styles de carte
-        card.style.transform = '';
-        
-        // Si nous avons stocké la largeur et hauteur d'origine, les restaurer
-        if (card.dataset.originalWidth && card.dataset.originalHeight) {
-            card.style.width = card.dataset.originalWidth;
-            card.style.height = card.dataset.originalHeight;
-        }
-        
-        // Réinitialiser le style du card-inner
-        const cardInner = card.querySelector('.card-inner');
-        if (cardInner) {
-            cardInner.style.transform = '';
-            cardInner.style.transformOrigin = '';
-        }
-        
-        // Réinitialiser les styles spéciaux sur card-back
-        const cardBack = card.querySelector('.card-back');
-        if (cardBack) {
-            cardBack.classList.remove('metal-hard');
-        }
+    // Indiquer que tout chargement vidéo en cours doit être annulé
+    videoLoadingCancelled = true;
+
+    // Grouper les mises à jour DOM pour éviter les reflows multiples
+    batchDOMUpdates(() => {
+        // S'assurer qu'il n'y a pas de classe instant-hide active
+        domElements.videoContainer.classList.remove('instant-hide');
+
+        // Masquer la vidéo
+        domElements.videoContainer.classList.remove('visible');
+
+        // Reset the transform property for the hidden state
+        domElements.videoContainer.style.transform = 'translate(-50%, -80%) scale(0.8)';
+
+        // Masquer les boutons
+        domElements.buyButton.style.opacity = '0';
+        domElements.buyButton.style.visibility = 'hidden';
+        domElements.buyButton.style.pointerEvents = 'none';
+        domElements.downloadButton.style.opacity = '0';
+        domElements.downloadButton.style.visibility = 'hidden';
+        domElements.downloadButton.style.pointerEvents = 'none';
+
+        // Masquer le titre de la production et le BPM
+        domElements.prodTitle.classList.remove('visible');
+        domElements.prodTitle.classList.add('hidden');
+        domElements.bpmText.classList.remove('visible');
+        domElements.bpmText.classList.add('hidden');
+
+        // Reposition elements after changing their visibility
+        updateTextPositions();
     });
-    
-    // Réinitialiser la disposition des cartes
-    updateCardsFan(getUniformScaleRatio());
-    
-    // Réinitialiser les textes
-    document.querySelector('h1').classList.remove('hidden');
-    document.querySelector('.bottom-text').classList.remove('hidden');
-    domElements.prodTitle.classList.remove('visible');
-    domElements.prodTitle.classList.add('hidden');
-    domElements.bpmText.classList.remove('visible');
-    domElements.bpmText.classList.add('hidden');
-    domElements.restartText.classList.remove('visible');
-    
-    // Réinitialiser les titres séparés en mode vertical
-    const dropElement = document.querySelector('.main-title-drop');
-    const themicElement = document.querySelector('.main-title-themic');
-    
-    if (dropElement) {
-        dropElement.classList.remove('hidden');
-    }
-    
-    if (themicElement) {
-        themicElement.classList.remove('hidden');
-    }
-    
-    // Masquer le conteneur vidéo plutôt que détruire le lecteur
-    const videoContainer = document.querySelector('.video-container');
-    if (videoContainer) {
-        videoContainer.classList.remove('visible');
-        videoContainer.style.transform = 'translate(-50%, -45%) scale(0.8)';
-    }
-    
-    // Mettre en pause la vidéo si un lecteur existe encore
-    if (youtubePlayer && typeof youtubePlayer.pauseVideo === 'function') {
-        try {
-            youtubePlayer.pauseVideo();
-            // On peut aussi remettre la vidéo au début pour la prochaine lecture
-            youtubePlayer.seekTo(0, true);
-        } catch (error) {
-            console.error("Erreur lors de la mise en pause de la vidéo:", error);
+
+    // Arrêter et nettoyer le lecteur YouTube si nécessaire
+    if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
+        youtubePlayer.stopVideo();
+
+        // Si possible, détruire le lecteur YouTube pour éviter les problèmes
+        if (typeof youtubePlayer.destroy === 'function') {
+            youtubePlayer.destroy();
+            youtubePlayer = null;
         }
     }
 
     // Réinitialiser les flags de chargement vidéo
     isLoadingVideo = false;
-    
-    // Mettre à jour les positions des textes en fonction de l'orientation
-    updateTextPositions();
 }
 
 // Fonction pour masquer la vidéo et réinitialiser le jeu
 function hideVideoAndReset() {
     // Annuler tout chargement de vidéo en cours
     videoLoadingCancelled = true;
-    
-    // Si un lecteur YouTube existe, mettre en pause la vidéo mais ne pas détruire le lecteur
-    if (youtubePlayer && typeof youtubePlayer.pauseVideo === 'function') {
-        try {
-            youtubePlayer.pauseVideo();
-            // Optionnel: remettre la vidéo au début pour la prochaine fois
-            youtubePlayer.seekTo(0, true);
-        } catch (error) {
-            console.error("Erreur lors de la mise en pause de la vidéo:", error);
-        }
-    }
-    
-    // Masquer le conteneur vidéo
-    const videoContainer = document.querySelector('.video-container');
-    if (videoContainer) {
-        videoContainer.classList.remove('visible');
-    }
 
     // Réinitialiser l'interface
     resetUI();
@@ -423,9 +378,6 @@ function hideVideoAndReset() {
     setTimeout(() => {
         initializeGame();
     }, 2000);
-    
-    // Réinitialiser les flags de chargement vidéo
-    isLoadingVideo = false;
 }
 
 // Animation sequence manager
@@ -517,16 +469,6 @@ class AnimationSequence {
         // Masquer le titre principal
         const title = document.querySelector('h1');
         title.classList.add('hidden');
-        
-        // Masquer aussi les titres séparés en mode vertical
-        const dropElement = document.querySelector('.main-title-drop');
-        const themicElement = document.querySelector('.main-title-themic');
-        if (dropElement) {
-            dropElement.classList.add('hidden');
-        }
-        if (themicElement) {
-            themicElement.classList.add('hidden');
-        }
 
         // Préparer le contenu des textes mais ne pas les afficher encore
         const prodTitle = document.querySelector('.prod-title');
@@ -1056,50 +998,7 @@ async function loadYouTubeVideo(videoId) {
             return;
         }
 
-        // Adapter le style du conteneur vidéo pour les navigateurs spéciaux
-        const isSpecial = isSpecialBrowser();
-        if (isSpecial) {
-            applyInstagramVideoStyles();
-        }
-
-        // Si un lecteur existe déjà, l'utiliser pour charger la nouvelle vidéo au lieu de le détruire
-        if (youtubePlayer && typeof youtubePlayer.loadVideoById === 'function') {
-            try {
-                console.log("Charger une nouvelle vidéo dans le lecteur existant");
-                // Arrêter la vidéo actuelle
-                youtubePlayer.stopVideo();
-                // Charger la nouvelle vidéo
-                youtubePlayer.loadVideoById({
-                    videoId: videoId,
-                    startSeconds: 0,
-                    suggestedQuality: 'hd720'
-                });
-                
-                // Rendre le conteneur vidéo visible s'il ne l'est pas déjà
-                const videoContainer = document.querySelector('.video-container');
-                if (videoContainer && !videoContainer.classList.contains('visible')) {
-                    videoContainer.classList.add('visible');
-                }
-                
-                // Lire la vidéo après un court délai pour s'assurer que tout est prêt
-                setTimeout(() => {
-                    if (!isSpecial) {
-                        youtubePlayer.playVideo();
-                    }
-                }, 500);
-                
-                isLoadingVideo = false;
-                return; // Sortir de la fonction puisque le lecteur a été réutilisé
-            } catch (error) {
-                console.error("Erreur lors de la réutilisation du lecteur YouTube:", error);
-                // Si une erreur se produit, continuer pour créer un nouveau lecteur
-            }
-        }
-        
-        // Si nous arrivons ici, c'est que nous n'avons pas pu réutiliser le lecteur existant
-        // Donc nous devons en créer un nouveau
-
-        // Si un lecteur existe toujours (après une erreur), le détruire proprement
+        // Si un lecteur existe déjà, le détruire proprement
         if (youtubePlayer) {
             try {
                 youtubePlayer.stopVideo();
@@ -1123,12 +1022,18 @@ async function loadYouTubeVideo(videoId) {
             return;
         }
 
+        // Adapter le style du conteneur vidéo pour Instagram
+        const isSpecial = isSpecialBrowser();
+        if (isSpecial) {
+            applyInstagramVideoStyles();
+        }
+
         // Créer un nouveau lecteur YouTube avec des contrôles adaptés au contexte
         youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
             playerVars: {
-                'autoplay': isSpecial ? 0 : 1, // Désactiver l'autoplay pour les navigateurs spéciaux
-                'controls': isSpecial ? 1 : 0, // Activer les contrôles natifs uniquement pour les navigateurs spéciaux
+                'autoplay': isSpecial ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
+                'controls': isSpecial ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
                 'showinfo': 0,
                 'modestbranding': 1,
                 'rel': 0,
@@ -1380,73 +1285,77 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
     });
 }
 
-// Gestionnaire d'événement appelé quand le lecteur YouTube est prêt
+// Fonction appelée lorsque le lecteur est prêt
 function onPlayerReady(event) {
-    isLoadingVideo = false;
-    
-    // Si le chargement a été annulé entre-temps, ne pas lancer la vidéo
+    // Vérifier si le chargement a été annulé pendant la création du lecteur
     if (videoLoadingCancelled) {
-        console.log("Chargement de la vidéo annulé au moment où le lecteur était prêt");
-        // Mettre en pause le lecteur sans le détruire
+        console.log("Lecture annulée, le jeu a été réinitialisé");
         if (youtubePlayer) {
-            youtubePlayer.pauseVideo();
+            youtubePlayer.stopVideo();
+
+            // Essayer de détruire le lecteur YouTube proprement
+            try {
+                youtubePlayer.destroy();
+            } catch (error) {
+                console.error("Erreur lors de la destruction du lecteur YouTube:", error);
+            }
+
+            youtubePlayer = null;
+
+            // Nettoyer aussi l'iframe
+            const youtubeContainer = document.getElementById('youtube-player');
+            if (youtubeContainer) {
+                youtubeContainer.innerHTML = '';
+            }
         }
+        isLoadingVideo = false;
         return;
     }
 
-    // Vérifier si le navigateur est compatible avec la lecture automatique
-    const isSpecial = isSpecialBrowser();
-    
-    // Sur les navigateurs standards, déclencher la lecture automatique
-    if (!isSpecial) {
-        try {
-            // Ajouter un court délai pour s'assurer que tout est prêt
-            setTimeout(() => {
-                if (youtubePlayer) {
-                    youtubePlayer.playVideo();
-                }
-            }, 300);
-        } catch (error) {
-            console.error("Erreur lors de la lecture automatique:", error);
-        }
+    // La vidéo est maintenant prête
+    isLoadingVideo = false;
+
+    const inInstagramBrowser = isSpecialBrowser();
+
+    // Gérer différemment selon le navigateur
+    if (!inInstagramBrowser) {
+        // Créer l'overlay personnalisé pour contrôler la vidéo sur les navigateurs standards
+        createCustomYouTubeOverlay();
+
+        // Lancer la lecture automatiquement
+        event.target.playVideo();
+    } else {
+        console.log("Navigateur Instagram détecté, attente du clic de l'utilisateur sur le bouton de lecture");
+        // Dans Instagram, on attend que l'utilisateur clique sur le bouton de lecture de YouTube
+        // Le son sera activé par défaut lorsqu'il cliquera sur play
     }
 
-    // Créer l'overlay personnalisé avec contrôles (sauf pour les navigateurs spéciaux)
-    createCustomYouTubeOverlay();
-    
-    // Émettre un événement personnalisé pour indiquer que la vidéo est prête
+    // Émettre un événement personnalisé
     document.dispatchEvent(new Event('YT.PlayerState.PLAYING'));
 }
 
 // Fonction appelée lorsque l'état du lecteur change
 function onPlayerStateChange(event) {
-    // Si la vidéo a été arrêtée ou si l'erreur -1 se produit (vidéo indisponible, etc.)
-    if (event.data === YT.PlayerState.UNSTARTED && event.target.getVideoUrl().includes('about:blank')) {
-        console.warn("Vidéo non disponible, réinitialisation...");
-        // Mettre en pause plutôt que détruire
-        if (youtubePlayer) {
-            youtubePlayer.pauseVideo();
-        }
-        // Masquer le conteneur vidéo et réinitialiser l'interface
-        hideVideoAndReset();
+    // Si le chargement a été annulé, arrêter immédiatement la vidéo
+    if (videoLoadingCancelled) {
+        youtubePlayer.stopVideo();
+        youtubePlayer.destroy();
+        youtubePlayer = null;
         return;
     }
 
-    // Dispatch des événements personnalisés pour les changements d'état du player
+    // Émettre des événements personnalisés pour les différents états
     switch (event.data) {
         case YT.PlayerState.PLAYING:
             document.dispatchEvent(new Event('YT.PlayerState.PLAYING'));
-            isPlaying = true;
-            updateProgressBar(); // Démarrer la mise à jour de la barre de progression
             break;
         case YT.PlayerState.PAUSED:
             document.dispatchEvent(new Event('YT.PlayerState.PAUSED'));
-            isPlaying = false;
             break;
         case YT.PlayerState.ENDED:
             document.dispatchEvent(new Event('YT.PlayerState.ENDED'));
-            isPlaying = false;
-            // Quand la vidéo se termine, revenir au jeu sans détruire le lecteur
+            console.log("Vidéo terminée");
+            // Faire disparaître la vidéo et réinitialiser le jeu
             hideVideoAndReset();
             break;
     }
@@ -1560,15 +1469,29 @@ async function handleRevealedCardClick(event) {
     videoLoadingCancelled = true;
     isLoadingVideo = false;
 
-    // Mettre en pause la vidéo si un lecteur existe encore, mais ne pas le détruire
-    if (youtubePlayer && typeof youtubePlayer.pauseVideo === 'function') {
+    // S'assurer que le lecteur YouTube est complètement détruit
+    if (youtubePlayer) {
         try {
-            // Mettre en pause la vidéo
-            youtubePlayer.pauseVideo();
-            // Remettre la vidéo au début pour la prochaine lecture
-            youtubePlayer.seekTo(0, true);
+            // Arrêter la vidéo immédiatement si le lecteur existe
+            if (typeof youtubePlayer.stopVideo === 'function') {
+                youtubePlayer.stopVideo();
+            }
+
+            // Essayer de détruire le lecteur YouTube
+            if (typeof youtubePlayer.destroy === 'function') {
+                youtubePlayer.destroy();
+            }
+
+            // Réinitialiser complètement la référence
+            youtubePlayer = null;
+
+            // Nettoyer aussi le contenu de l'iframe
+            const youtubeContainer = document.getElementById('youtube-player');
+            if (youtubeContainer) {
+                youtubeContainer.innerHTML = '';
+            }
         } catch (error) {
-            console.error("Erreur lors de la mise en pause de la vidéo:", error);
+            console.error("Erreur lors de la destruction du lecteur YouTube:", error);
         }
     }
 
@@ -1582,7 +1505,7 @@ async function handleRevealedCardClick(event) {
     domElements.buyButton.style.pointerEvents = 'none';
     domElements.downloadButton.style.opacity = '0';
     domElements.downloadButton.style.visibility = 'hidden';
-    domElements.downloadButton.style.pointerEvents = 'none';
+    domElements.downloadButton.style.pointerEvents = 'none';;
     domElements.prodTitle.classList.remove('visible');
     domElements.prodTitle.classList.add('hidden');
     domElements.bpmText.classList.remove('visible');
@@ -2037,7 +1960,50 @@ function isSpecialBrowser() {
 }
 
 // Fonction pour créer et afficher le message Instagram
-// RETIRÉ POUR LE MOMENT
+function showInstagramMessage() {
+    // Ne pas afficher le message si déjà affiché
+    if (instagramMessageShown) {
+        return;
+    }
+
+    // Créer le conteneur du message
+    const messageContainer = document.createElement('div');
+    messageContainer.className = 'instagram-message';
+
+    // Appliquer les styles au conteneur
+    Object.assign(messageContainer.style, {
+        position: 'fixed',
+        top: 'calc(10px * var(--scale-ratio, 1))',
+        left: 'calc(10px * var(--scale-ratio, 1))',
+        right: 'calc(10px * var(--scale-ratio, 1))',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        color: 'white',
+        padding: 'calc(8px * var(--scale-ratio, 1))',
+        borderRadius: 'calc(8px * var(--scale-ratio, 1))',
+        zIndex: '10000',
+        textAlign: 'center',
+        fontSize: 'calc(13px * var(--scale-ratio, 1))',
+        fontFamily: 'Arial, Helvetica, sans-serif', // Police basique
+        boxShadow: '0 calc(4px * var(--scale-ratio, 1)) calc(20px * var(--scale-ratio, 1)) rgba(0, 0, 0, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    });
+
+    // Texte du message avec instructions pour Instagram et flèche pointant vers le haut à droite
+    const messageText = document.createElement('div');
+    messageText.innerHTML = 'Ouvre la page dans ton navigateur web <span style="font-size:calc(13px * var(--scale-ratio, 1)); margin-left: calc(10px * var(--scale-ratio, 1));">&#8599;</span>';
+
+    // Ajouter les éléments au conteneur
+    messageContainer.appendChild(messageText);
+
+    // Ajouter le conteneur à la page
+    document.body.appendChild(messageContainer);
+
+    // Marquer le message comme affiché
+    instagramMessageShown = true;
+
+}
 
 // Initialiser les variables CSS au chargement de la page
 document.addEventListener('DOMContentLoaded', function () {
@@ -2052,7 +2018,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeDOMElements();
 
     // Vérifier si nous sommes dans le navigateur Instagram
-    // RETIRÉ POUR LE MOMENT
+    if (isSpecialBrowser()) {
+        // Afficher le message pour suggérer d'ouvrir dans un navigateur web
+        showInstagramMessage();
+    }
 
     // Set up dynamic text positioning
     updateTextPositions();

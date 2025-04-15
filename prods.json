@@ -575,6 +575,14 @@
       ],
       "Gros banger": [
         {
+          "title": "MISSION",
+          "id": "2pd4A-kwzQM",
+          "bpm": 90,
+          "buy": "https://www.saint-drop.com/beat/mission-dark-boom-bap-trap-beat-90-bpm-11205376",
+          "download_pc": "https://drive.google.com/uc?id=1JkMSqbLu8KkkYq7aMWSf56mBU0Gp7Hxh&export=download",
+          "download_android": "https://drive.google.com/drive/folders/1LBFfVbVRN6yp2CUkGjfcjNbz7M4UWtue?usp=drive_link"
+        },
+        {
           "title": "OMG",
           "id": "jc6UjAgEDBk",
           "bpm": 160,
@@ -767,14 +775,6 @@
           "buy": "https://www.saint-drop.com/beat/witch-hunter-dark-trap-beat-135-bpm-11333656",
           "download_pc": "https://drive.google.com/uc?id=1HpgapoXJF2dxPFs2TiuClzAE7D1tqw8u&export=download",
           "download_android": "https://drive.google.com/drive/folders/1qwhcQu1sLhWf8pDFpt-StsDz6EzV1bIX?usp=drive_link"
-        },
-        {
-          "title": "MISSION",
-          "id": "2pd4A-kwzQM",
-          "bpm": 90,
-          "buy": "https://www.saint-drop.com/beat/mission-dark-boom-bap-trap-beat-90-bpm-11205376",
-          "download_pc": "https://drive.google.com/uc?id=1JkMSqbLu8KkkYq7aMWSf56mBU0Gp7Hxh&export=download",
-          "download_android": "https://drive.google.com/drive/folders/1LBFfVbVRN6yp2CUkGjfcjNbz7M4UWtue?usp=drive_link"
         },
         {
           "title": "ROYAL",
@@ -1028,7 +1028,9 @@
           "title": "SOUVENIR",
           "id": "bY_Um0w2eqA",
           "bpm": 150,
-          "buy": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880"
+          "buy": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880",
+          "download_pc": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880",
+          "download_android": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880"
         },
         {
           "title": "MAUDIT",
@@ -1399,7 +1401,10 @@
         {
           "title": "VIP",
           "id": "73RT6ccyPhI",
-          "bpm": 120
+          "bpm": 120,
+          "buy": "https://saint-drop.com/beat/vip-club-banger-type-beat-120-bpm-13609905",
+          "download_pc": "https://drive.google.com/drive/folders/1TPAbUJKBT1fjHm0l3B9nO6iP3vFaQDuh?usp=sharing",
+          "download_android": "https://drive.google.com/drive/folders/1TPAbUJKBT1fjHm0l3B9nO6iP3vFaQDuh?usp=sharing"
         }
       ],
       "2Step": [
