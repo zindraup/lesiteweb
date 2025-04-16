@@ -1865,32 +1865,38 @@ function updateSelectedCard(scaleRatio) {
 // Fonction pour détecter si nous sommes dans le navigateur Instagram
 function isInstagramBrowser() {
     // Vérifier si l'agent utilisateur contient "Instagram"
+    // Vérifier Instagram
     if (navigator.userAgent.includes('Instagram')) {
         return true;
     }
 
-    // Vérifier si l'URL de référence provient d'Instagram
-    if (document.referrer && document.referrer.includes('instagram.com')) {
+    // Vérifier TikTok
+    if (navigator.userAgent.includes('TikTok')) {
         return true;
     }
 
-    // Certaines implémentations du WebView d'Instagram modifient window.navigator
+    // Vérifier iPhone (pour les WebViews spécifiques à iOS)
+    if (navigator.userAgent.includes('iPhone') && !navigator.userAgent.includes('Safari')) {
+        return true;
+    }
+
+    // Vérifier si l'URL de référence provient d'Instagram, TikTok ou YouTube
+    if (document.referrer && (
+        document.referrer.includes('instagram.com') || 
+        document.referrer.includes('tiktok.com')
+    )) {
+        return true;
+    }
+
+    // Certaines implémentations des WebViews modifient window.navigator
     try {
-        if (window.navigator.userAgent.indexOf('Instagram') !== -1) {
+        const ua = window.navigator.userAgent;
+        if (ua.indexOf('Instagram') !== -1 || 
+            ua.indexOf('TikTok') !== -1){
             return true;
         }
     } catch (e) {
         console.error("Erreur lors de la vérification de userAgent:", e);
-    }
-
-    // Vérifier si nous sommes dans un iframe (méthode parfois utilisée par Instagram)
-    try {
-        if (window !== window.top) {
-            return true;
-        }
-    } catch (e) {
-        // L'accès à window.top a échoué, ce qui suggère souvent un iframe cross-origin
-        return true;
     }
 
     return false;
@@ -1898,8 +1904,8 @@ function isInstagramBrowser() {
 
 // Fonction pour créer et afficher le message Instagram
 function showInstagramMessage() {
-    // Ne pas afficher le message si déjà affiché
-    if (instagramMessageShown) {
+    // Ne pas afficher le message si déjà affiché ou si c'est un iPhone
+    if (instagramMessageShown || navigator.userAgent.includes('iPhone')) {
         return;
     }
 
