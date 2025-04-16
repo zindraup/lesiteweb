@@ -149,13 +149,13 @@
         {
           "title": "SMOKE",
           "id": "nKcbbeGrO54",
-          "bpm": 175,
+          "bpm": 87,
           "buy": "https://www.saint-drop.com/beat/smoke-crazy-banger-trap-beat-175-bpm-8611848",
           "download_pc": "https://drive.google.com/uc?id=12BQO1389WKLFfOoN0vV-uVOUBdgG7YFk&export=download",
           "download_android": "https://drive.google.com/drive/folders/1u_puThqL2zynKqt1ja3eow72LDYjtmou?usp=drive_link"
         }
       ],
-      "PSYCHEDELIQUE TYPE BEAT": [
+      "LSD TYPE BEAT": [
         {
           "title": "PSYCAR",
           "id": "0EGMzaNewvQ",
@@ -239,7 +239,7 @@
         {
           "title": "CHAMPAGNE",
           "id": "0RUtiLcl-0w",
-          "bpm": 75,
+          "bpm": 150,
           "buy": "https://www.saint-drop.com/beat/champagne-jazzy-reggaeton-type-beat-150-bpm-6122667",
           "download_pc": "https://drive.google.com/uc?id=1atmT0IcRIbwV7vEylnANwrCByeKY0I1z&export=download",
           "download_android": "https://drive.google.com/drive/folders/1_BGWhXeO52Ajs6-M_pU__bWSVh_-Ofsu?usp=drive_link"
@@ -419,6 +419,16 @@
           "download_android": "https://drive.google.com/drive/folders/1fsjZVLqvDxbKv82KRofkl-DjI1f_wWxE?usp=drive_link"
         }
       ],
+      "AFRO x TRAP": [
+        {
+          "title": "JOKER",
+          "id": "3mRN2A_RPoo",
+          "bpm": 140,
+          "buy": "https://www.saint-drop.com/beat/joker-afro-x-trap-type-beat-switch-140-bpm-14624702",
+          "download_pc": "https://drive.google.com/uc?id=17zyoVYoS54rxTC3tLVo3OBt8rh88cUws&export=download",
+          "download_android": "https://drive.google.com/drive/folders/14kePjDASeBPCTUcWEtEEEX3f9t1iLTNo?usp=drive_link"
+        }
+      ],
       "PROD QUI TABASSE": [
         {
           "title": "DRUMS",
@@ -565,6 +575,14 @@
       ],
       "Gros banger": [
         {
+          "title": "MISSION",
+          "id": "2pd4A-kwzQM",
+          "bpm": 90,
+          "buy": "https://www.saint-drop.com/beat/mission-dark-boom-bap-trap-beat-90-bpm-11205376",
+          "download_pc": "https://drive.google.com/uc?id=1JkMSqbLu8KkkYq7aMWSf56mBU0Gp7Hxh&export=download",
+          "download_android": "https://drive.google.com/drive/folders/1LBFfVbVRN6yp2CUkGjfcjNbz7M4UWtue?usp=drive_link"
+        },
+        {
           "title": "OMG",
           "id": "jc6UjAgEDBk",
           "bpm": 160,
@@ -637,14 +655,6 @@
           "buy": "https://www.saint-drop.com/beat/good-bye-travis-scott-x-drake-type-beat-146-bpm-14689330",
           "download_pc": "https://drive.google.com/uc?id=1rmiHmI0Xp6J-AZko00LKrGpr9n7VwzOq&export=download",
           "download_android": "https://drive.google.com/drive/folders/1aD8a8OZkUsB6xTa8mwGyhTYMczJbZxRP?usp=drive_link"
-        },
-        {
-          "title": "JOKER",
-          "id": "3mRN2A_RPoo",
-          "bpm": 140,
-          "buy": "https://www.saint-drop.com/beat/joker-afro-x-trap-type-beat-switch-140-bpm-14624702",
-          "download_pc": "https://drive.google.com/uc?id=17zyoVYoS54rxTC3tLVo3OBt8rh88cUws&export=download",
-          "download_android": "https://drive.google.com/drive/folders/14kePjDASeBPCTUcWEtEEEX3f9t1iLTNo?usp=drive_link"
         },
         {
           "title": "BIKE",
@@ -765,14 +775,6 @@
           "buy": "https://www.saint-drop.com/beat/witch-hunter-dark-trap-beat-135-bpm-11333656",
           "download_pc": "https://drive.google.com/uc?id=1HpgapoXJF2dxPFs2TiuClzAE7D1tqw8u&export=download",
           "download_android": "https://drive.google.com/drive/folders/1qwhcQu1sLhWf8pDFpt-StsDz6EzV1bIX?usp=drive_link"
-        },
-        {
-          "title": "MISSION",
-          "id": "2pd4A-kwzQM",
-          "bpm": 90,
-          "buy": "https://www.saint-drop.com/beat/mission-dark-boom-bap-trap-beat-90-bpm-11205376",
-          "download_pc": "https://drive.google.com/uc?id=1JkMSqbLu8KkkYq7aMWSf56mBU0Gp7Hxh&export=download",
-          "download_android": "https://drive.google.com/drive/folders/1LBFfVbVRN6yp2CUkGjfcjNbz7M4UWtue?usp=drive_link"
         },
         {
           "title": "ROYAL",
@@ -1026,7 +1028,9 @@
           "title": "SOUVENIR",
           "id": "bY_Um0w2eqA",
           "bpm": 150,
-          "buy": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880"
+          "buy": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880",
+          "download_pc": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880",
+          "download_android": "https://www.saint-drop.com/beat/souvenir-rock-guitar-trap-beat-150-bpm-6996880"
         },
         {
           "title": "MAUDIT",
@@ -1397,7 +1401,10 @@
         {
           "title": "VIP",
           "id": "73RT6ccyPhI",
-          "bpm": 120
+          "bpm": 120,
+          "buy": "https://saint-drop.com/beat/vip-club-banger-type-beat-120-bpm-13609905",
+          "download_pc": "https://drive.google.com/drive/folders/1TPAbUJKBT1fjHm0l3B9nO6iP3vFaQDuh?usp=sharing",
+          "download_android": "https://drive.google.com/drive/folders/1TPAbUJKBT1fjHm0l3B9nO6iP3vFaQDuh?usp=sharing"
         }
       ],
       "2Step": [

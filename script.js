@@ -220,6 +220,7 @@ fetch('prods.json')
 
 // Configuration des boutons d'achat et de téléchargement
 function setupButtonListeners() {
+    // Utiliser les références du cache DOM
     domElements.buyButton.addEventListener('click', () => {
         if (currentProduction && currentProduction.buy) {
             window.open(currentProduction.buy, '_blank');
@@ -229,31 +230,8 @@ function setupButtonListeners() {
     });
 
     domElements.downloadButton.addEventListener('click', () => {
-        if (!currentProduction) {
-            console.log("Aucune production sélectionnée pour téléchargement");
-            return;
-        }
-
-        const isMobile = isMobileDevice();
-        let downloadLink = null;
-        let linkType = '';
-        
-        if (isMobile && currentProduction.download_android) {
-            // Utiliser le lien spécifique aux téléphones si disponible
-            downloadLink = currentProduction.download_android;
-            linkType = 'téléphone';
-        } else if (!isMobile && currentProduction.download_pc) {
-            // Utiliser le lien spécifique aux PC si disponible
-            downloadLink = currentProduction.download_pc;
-            linkType = 'ordinateur';
-        } else if (currentProduction.buy) {
-            // Fallback sur le lien d'achat si aucun lien de téléchargement n'est disponible
-            downloadLink = currentProduction.buy;
-            linkType = 'achat (fallback)';
-        }
-        if (downloadLink) {
-            console.log(`Téléchargement via lien pour ${linkType}: ${downloadLink}`);
-            window.open(downloadLink, '_blank');
+        if (currentProduction && currentProduction.buy) {
+            window.open(currentProduction.buy, '_blank');
         } else {
             console.log("Aucun lien de téléchargement disponible pour cette production");
         }
@@ -332,11 +310,7 @@ function resetUI() {
 
         // Masquer les boutons
         domElements.buyButton.style.opacity = '0';
-        domElements.buyButton.style.visibility = 'hidden';
-        domElements.buyButton.style.pointerEvents = 'none';
         domElements.downloadButton.style.opacity = '0';
-        domElements.downloadButton.style.visibility = 'hidden';
-        domElements.downloadButton.style.pointerEvents = 'none';
 
         // Masquer le titre de la production et le BPM
         domElements.prodTitle.classList.remove('visible');
@@ -551,33 +525,16 @@ class AnimationSequence {
 
             domElements.restartText.classList.add('visible');
 
-            // Mettre à jour l'apparence des boutons en fonction de la disponibilité des liens
+            // Mettre à jour l'apparence des boutons en fonction de la disponibilité du lien d'achat
             if (currentProduction && currentProduction.buy) {
                 domElements.buyButton.style.opacity = '1';
-                domElements.buyButton.style.visibility = 'visible';
-                domElements.buyButton.style.pointerEvents = 'auto';                
-                domElements.buyButton.style.cursor = 'pointer';
-            } else {
-                domElements.buyButton.style.opacity = '0.5';
-                domElements.buyButton.style.visibility = 'visible';
-                domElements.buyButton.style.pointerEvents = 'auto';
-                domElements.buyButton.style.cursor = 'not-allowed';
-            }
-            
-            // Gérer le bouton de téléchargement séparément
-            const isMobile = isMobileDevice();
-            const hasDownloadLink = (isMobile && currentProduction.download_android) || 
-                                   (!isMobile && currentProduction.download_pc);
-            
-            if (currentProduction && hasDownloadLink) {
                 domElements.downloadButton.style.opacity = '1';
-                domElements.downloadButton.style.visibility = 'visible';
-                domElements.downloadButton.style.pointerEvents = 'auto';
+                domElements.buyButton.style.cursor = 'pointer';
                 domElements.downloadButton.style.cursor = 'pointer';
             } else {
+                domElements.buyButton.style.opacity = '0.5';
                 domElements.downloadButton.style.opacity = '0.5';
-                domElements.downloadButton.style.visibility = 'visible';
-                domElements.downloadButton.style.pointerEvents = 'auto'; 
+                domElements.buyButton.style.cursor = 'not-allowed';
                 domElements.downloadButton.style.cursor = 'not-allowed';
             }
 
@@ -1023,8 +980,8 @@ async function loadYouTubeVideo(videoId) {
         }
 
         // Adapter le style du conteneur vidéo pour Instagram
-        const isSpecial = isSpecialBrowser();
-        if (isSpecial) {
+        const isInsta = isInstagramBrowser();
+        if (isInsta) {
             applyInstagramVideoStyles();
         }
 
@@ -1032,8 +989,8 @@ async function loadYouTubeVideo(videoId) {
         youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
             playerVars: {
-                'autoplay': isSpecial ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
-                'controls': isSpecial ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
+                'autoplay': isInsta ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
+                'controls': isInsta ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
                 'showinfo': 0,
                 'modestbranding': 1,
                 'rel': 0,
@@ -1043,7 +1000,7 @@ async function loadYouTubeVideo(videoId) {
                 'cc_load_policy': 0,
                 'color': 'white',
                 'playsinline': 1, // Important pour iOS
-                'mute': 0,
+                'mute': isInsta ? 0 : 1, // Pas de mode muet pour Instagram, mais actif ailleurs pour permettre l'autoplay
                 'origin': window.location.origin,
                 'enablejsapi': 1
             },
@@ -1120,7 +1077,7 @@ function createCustomYouTubeOverlay() {
     if (!videoContainer) return;
 
     // Ne pas créer d'overlay dans le navigateur Instagram
-    if (isSpecialBrowser()) {
+    if (isInstagramBrowser()) {
         console.log("Navigateur Instagram détecté, pas d'overlay personnalisé");
         return;
     }
@@ -1315,7 +1272,7 @@ function onPlayerReady(event) {
     // La vidéo est maintenant prête
     isLoadingVideo = false;
 
-    const inInstagramBrowser = isSpecialBrowser();
+    const inInstagramBrowser = isInstagramBrowser();
 
     // Gérer différemment selon le navigateur
     if (!inInstagramBrowser) {
@@ -1501,11 +1458,7 @@ async function handleRevealedCardClick(event) {
 
     // Masquer également les boutons et textes immédiatement
     domElements.buyButton.style.opacity = '0';
-    domElements.buyButton.style.visibility = 'hidden';
-    domElements.buyButton.style.pointerEvents = 'none';
     domElements.downloadButton.style.opacity = '0';
-    domElements.downloadButton.style.visibility = 'hidden';
-    domElements.downloadButton.style.pointerEvents = 'none';;
     domElements.prodTitle.classList.remove('visible');
     domElements.prodTitle.classList.add('hidden');
     domElements.bpmText.classList.remove('visible');
@@ -1609,7 +1562,7 @@ function updateTextPositions() {
         cardsContainer.style.transform = 'translateY(-50%)';
         cardsContainer.style.left = '0';
         cardsContainer.style.right = '0';
-        
+
         // Ajuster les cartes
         updateCardsFan(scaleRatio);
     }
@@ -1910,19 +1863,9 @@ function updateSelectedCard(scaleRatio) {
 }
 
 // Fonction pour détecter si nous sommes dans le navigateur Instagram
-function isSpecialBrowser() {
+function isInstagramBrowser() {
     // Vérifier si l'agent utilisateur contient "Instagram"
     if (navigator.userAgent.includes('Instagram')) {
-        return true;
-    }
-
-    // Vérifier si l'agent utilisateur contient "TikTok"
-    if (navigator.userAgent.includes('TikTok')) {
-        return true;
-    }
-    
-    // Vérifier si c'est un iPhone
-    if (navigator.userAgent.includes('iPhone')) {
         return true;
     }
 
@@ -1930,23 +1873,17 @@ function isSpecialBrowser() {
     if (document.referrer && document.referrer.includes('instagram.com')) {
         return true;
     }
-    
-    // Vérifier si l'URL de référence provient de TikTok
-    if (document.referrer && document.referrer.includes('tiktok.com')) {
-        return true;
-    }
 
-    // Certaines implémentations du WebView modifient window.navigator
+    // Certaines implémentations du WebView d'Instagram modifient window.navigator
     try {
-        if (window.navigator.userAgent.indexOf('Instagram') !== -1 || 
-            window.navigator.userAgent.indexOf('TikTok') !== -1) {
+        if (window.navigator.userAgent.indexOf('Instagram') !== -1) {
             return true;
         }
     } catch (e) {
         console.error("Erreur lors de la vérification de userAgent:", e);
     }
 
-    // Vérifier si nous sommes dans un iframe (méthode parfois utilisée par certaines apps)
+    // Vérifier si nous sommes dans un iframe (méthode parfois utilisée par Instagram)
     try {
         if (window !== window.top) {
             return true;
@@ -2018,7 +1955,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeDOMElements();
 
     // Vérifier si nous sommes dans le navigateur Instagram
-    if (isSpecialBrowser()) {
+    if (isInstagramBrowser()) {
         // Afficher le message pour suggérer d'ouvrir dans un navigateur web
         showInstagramMessage();
     }
@@ -2048,7 +1985,7 @@ function handleWindowResize() {
 
     // Set a timeout to avoid excessive function calls during resize
     resizeTimeout = setTimeout(() => {
-        // Vérifier si l'orientation a changé        
+        // Vérifier si l'orientation a changé
         const currentOrientation = isVertical();
         const orientationChanged = currentOrientation !== lastOrientation;
 
@@ -2058,23 +1995,7 @@ function handleWindowResize() {
         // Si l'orientation a changé, faire une mise à jour plus complète
         if (orientationChanged) {
             console.log(`Orientation changée: mode ${currentOrientation ? 'vertical' : 'horizontal'}`);
-            // Si on passe du mode vertical au mode horizontal, masquer les titres séparés
-            if (!currentOrientation) {
-                // Récupérer les éléments de titre séparé
-                const dropElement = document.querySelector('.main-title-drop');
-                const themicElement = document.querySelector('.main-title-themic');
-                
-                // Les masquer s'ils existent
-                if (dropElement) dropElement.style.display = 'none';
-                if (themicElement) themicElement.style.display = 'none';
-            } else {
-                // En mode vertical, s'assurer que le titre H1 est caché et les titres séparés visibles
-                const dropElement = document.querySelector('.main-title-drop');
-                const themicElement = document.querySelector('.main-title-themic');
-                
-                if (dropElement) dropElement.style.display = '';
-                if (themicElement) themicElement.style.display = '';
-            }
+
             // Réinitialiser les positions de tous les éléments si une carte est révélée
             const revealedCard = document.querySelector('.card.revealed');
             if (revealedCard) {
@@ -2506,10 +2427,4 @@ function updateDecorativeCardsVertical() {
         // Appliquer la rotation
         card.style.transform = `rotate(${position.rotate}deg)`;
     });
-}
-
-// Fonction pour détecter si l'utilisateur est sur un appareil mobile
-function isMobileDevice() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-           (window.innerWidth <= 768);
 }
