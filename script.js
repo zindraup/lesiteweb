@@ -11,6 +11,7 @@ let youtubeAPILoaded = false; // Flag pour suivre si l'API YouTube est déjà ch
 let isLoadingVideo = false; // Flag pour suivre si une vidéo est en cours de chargement
 let videoLoadingCancelled = false; // Flag pour indiquer si le chargement a été annulé
 let instagramMessageShown = false; // Flag pour suivre si le message Instagram a déjà été affiché
+let progressBarIntervalId = null; // Pour suivre l'intervalle de mise à jour de la barre de progression
 
 // Variables pour la sélection aléatoire améliorée
 let usedRedProductions = []; // Pour stocker les productions rouges déjà utilisées
@@ -348,16 +349,12 @@ function resetUI() {
         updateTextPositions();
     });
 
-    // Arrêter et nettoyer le lecteur YouTube si nécessaire
-    if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
-        youtubePlayer.stopVideo();
-
-        // Si possible, détruire le lecteur YouTube pour éviter les problèmes
-        if (typeof youtubePlayer.destroy === 'function') {
-            youtubePlayer.destroy();
-            youtubePlayer = null;
-        }
+    // Mettre en pause le lecteur YouTube s'il existe, au lieu de le détruire
+    if (youtubePlayer && typeof youtubePlayer.pauseVideo === 'function') {
+        youtubePlayer.pauseVideo();
     }
+    // Arrêter et réinitialiser la barre de progression
+    stopProgressBarUpdate();
 
     // Réinitialiser les flags de chargement vidéo
     isLoadingVideo = false;
@@ -368,16 +365,16 @@ function hideVideoAndReset() {
     // Annuler tout chargement de vidéo en cours
     videoLoadingCancelled = true;
 
-    // Réinitialiser l'interface
+    // Réinitialiser l'interface (ce qui masque et met en pause la vidéo)
     resetUI();
 
     // Afficher le texte de redémarrage
     domElements.restartText.classList.add('visible');
 
-    // Attendre un peu avant de réinitialiser complètement
+    // Attendre un peu avant de réinitialiser complètement le jeu
     setTimeout(() => {
         initializeGame();
-    }, 2000);
+    }, 2000); // Garder le délai pour la transition visuelle
 }
 
 // Animation sequence manager
@@ -537,6 +534,7 @@ class AnimationSequence {
     async showVideoAndControls() {
         // Regrouper les mises à jour DOM pour éviter les reflows multiples
         batchDOMUpdates(() => {
+             // Rendre le conteneur vidéo visible
             domElements.videoContainer.classList.add('visible');
 
             // Update the transform property for the visible state (position ajustée à 425px)
@@ -555,7 +553,7 @@ class AnimationSequence {
             if (currentProduction && currentProduction.buy) {
                 domElements.buyButton.style.opacity = '1';
                 domElements.buyButton.style.visibility = 'visible';
-                domElements.buyButton.style.pointerEvents = 'auto';                
+                domElements.buyButton.style.pointerEvents = 'auto';
                 domElements.buyButton.style.cursor = 'pointer';
             } else {
                 domElements.buyButton.style.opacity = '0.5';
@@ -563,12 +561,12 @@ class AnimationSequence {
                 domElements.buyButton.style.pointerEvents = 'auto';
                 domElements.buyButton.style.cursor = 'not-allowed';
             }
-            
+
             // Gérer le bouton de téléchargement séparément
             const isMobile = isMobileDevice();
-            const hasDownloadLink = (isMobile && currentProduction.download_android) || 
+            const hasDownloadLink = (isMobile && currentProduction.download_android) ||
                                    (!isMobile && currentProduction.download_pc);
-            
+
             if (currentProduction && hasDownloadLink) {
                 domElements.downloadButton.style.opacity = '1';
                 domElements.downloadButton.style.visibility = 'visible';
@@ -577,7 +575,7 @@ class AnimationSequence {
             } else {
                 domElements.downloadButton.style.opacity = '0.5';
                 domElements.downloadButton.style.visibility = 'visible';
-                domElements.downloadButton.style.pointerEvents = 'auto'; 
+                domElements.downloadButton.style.pointerEvents = 'auto';
                 domElements.downloadButton.style.cursor = 'not-allowed';
             }
 
@@ -588,9 +586,22 @@ class AnimationSequence {
             updateTextPositions();
         });
 
+        // Lancer la lecture de la vidéo si le lecteur est prêt et non dans un navigateur spécial
+        if (youtubePlayer && typeof youtubePlayer.playVideo === 'function' && !isSpecialBrowser()) {
+             console.log("Lancement de la lecture depuis showVideoAndControls");
+             youtubePlayer.playVideo();
+         } else if (isSpecialBrowser()) {
+             console.log("Navigateur spécial détecté, la lecture attendra l'interaction utilisateur.");
+         } else {
+             console.log("Lecteur non prêt ou fonction playVideo non disponible.");
+         }
+
         // Laisser le temps aux animations de se produire
         console.log("Classes du titre de prod:", domElements.prodTitle.className);
         console.log("Classes du texte BPM:", domElements.bpmText.className);
+
+         // Pas besoin d'attente supplémentaire ici, la lecture est lancée si possible.
+        // await this.delay(200);
     }
 }
 
@@ -966,7 +977,7 @@ async function loadYouTubeVideo(videoId) {
             return;
         }
 
-        // S'assurer que l'API YouTube est chargée avant de créer le lecteur
+        // S'assurer que l'API YouTube est chargée avant de créer ou utiliser le lecteur
         if (!youtubeAPILoaded) {
             // Vérifier l'annulation avant de charger l'API
             if (videoLoadingCancelled) {
@@ -998,64 +1009,79 @@ async function loadYouTubeVideo(videoId) {
             return;
         }
 
-        // Si un lecteur existe déjà, le détruire proprement
-        if (youtubePlayer) {
-            try {
-                youtubePlayer.stopVideo();
-                youtubePlayer.destroy();
-                youtubePlayer = null;
-            } catch (error) {
-                console.error("Erreur lors de la destruction du lecteur YouTube existant:", error);
-            }
-        }
-
-        // Nettoyer le contenu de l'iframe si nécessaire
-        const youtubeContainer = document.getElementById('youtube-player');
-        if (youtubeContainer) {
-            youtubeContainer.innerHTML = '';
-        }
-
-        // Vérifier à nouveau si le chargement a été annulé
-        if (videoLoadingCancelled) {
-            console.log("Chargement de la vidéo annulé avant création du lecteur");
-            isLoadingVideo = false;
-            return;
-        }
-
         // Adapter le style du conteneur vidéo pour Instagram
         const isSpecial = isSpecialBrowser();
         if (isSpecial) {
             applyInstagramVideoStyles();
         }
 
-        // Créer un nouveau lecteur YouTube avec des contrôles adaptés au contexte
-        youtubePlayer = new YT.Player('youtube-player', {
-            videoId: videoId,
-            playerVars: {
-                'autoplay': isSpecial ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
-                'controls': isSpecial ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
-                'showinfo': 0,
-                'modestbranding': 1,
-                'rel': 0,
-                'iv_load_policy': 3,
-                'fs': 0,
-                'disablekb': 1, // Désactiver les contrôles clavier
-                'cc_load_policy': 0,
-                'color': 'white',
-                'playsinline': 1, // Important pour iOS
-                'mute': 0,
-                'origin': window.location.origin,
-                'enablejsapi': 1
-            },
-            events: {
-                'onReady': onPlayerReady,
-                'onStateChange': onPlayerStateChange,
-                'onError': onPlayerError
+        // Si un lecteur existe déjà, le réutiliser pour charger la nouvelle vidéo
+        if (youtubePlayer && typeof youtubePlayer.loadVideoById === 'function') {
+            console.log("Réutilisation du lecteur YouTube existant pour charger la vidéo:", videoId);
+
+            // Arrêter et réinitialiser la barre de progression avant de charger la nouvelle vidéo
+            stopProgressBarUpdate();
+
+            // Masquer le conteneur pendant le chargement de la nouvelle vidéo (s'il est visible)
+            if (domElements.videoContainer.classList.contains('visible')) {
+                 domElements.videoContainer.classList.remove('visible');
             }
-        });
+
+            // Pauser la vidéo actuelle avant de charger la nouvelle (si elle joue)
+            // Vérifier que la fonction existe avant de l'appeler
+            if (typeof youtubePlayer.pauseVideo === 'function') {
+                youtubePlayer.pauseVideo();
+            }
+
+            // Charger la nouvelle vidéo.
+             youtubePlayer.loadVideoById(videoId);
+             isLoadingVideo = false;
+             console.log("Nouvelle vidéo chargée dans le lecteur existant.");
+
+
+        } else {
+            // Si aucun lecteur n'existe, ou si l'API n'est pas prête, le créer
+            console.log("Création d'un nouveau lecteur YouTube pour la vidéo:", videoId);
+
+            // Nettoyer le contenu de l'iframe si nécessaire (au cas où il y aurait des restes d'une tentative précédente)
+            const youtubeContainer = document.getElementById('youtube-player');
+            if (youtubeContainer) {
+                youtubeContainer.innerHTML = '';
+            }
+
+            // Créer un nouveau lecteur YouTube
+            youtubePlayer = new YT.Player('youtube-player', {
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': isSpecial ? 0 : 1, // Désactiver l'autoplay pour Instagram, l'activer pour les autres navigateurs
+                    'controls': isSpecial ? 1 : 0, // Activer les contrôles natifs uniquement pour Instagram
+                    'showinfo': 0,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'iv_load_policy': 3,
+                    'fs': 0,
+                    'disablekb': 1, // Désactiver les contrôles clavier
+                    'cc_load_policy': 0,
+                    'color': 'white',
+                    'playsinline': 1, // Important pour iOS
+                    'mute': 0,
+                    'origin': window.location.origin,
+                    'enablejsapi': 1
+                },
+                events: {
+                    'onReady': onPlayerReady, // onPlayerReady sera appelé seulement pour le premier chargement
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+             // isLoadingVideo sera mis à false dans onPlayerReady pour la première création
+        }
+
     } catch (error) {
-        console.error("Erreur lors du chargement de la vidéo:", error);
+        console.error("Erreur lors du chargement ou de la création du lecteur vidéo:", error);
         isLoadingVideo = false;
+        // Envisager une réinitialisation si une erreur survient ici
+        // initializeGame();
     }
 }
 
@@ -1204,8 +1230,9 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
         if (!youtubePlayer) return;
 
         try {
+            const currentState = youtubePlayer.getPlayerState();
             // Lire ou mettre en pause la vidéo selon l'état actuel
-            if (isPlaying) {
+            if (currentState === YT.PlayerState.PLAYING) {
                 youtubePlayer.pauseVideo();
                 overlay.classList.remove('playing');
                 showCenterIndicator('▶'); // Afficher l'icône play
@@ -1214,9 +1241,7 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
                 overlay.classList.add('playing');
                 showCenterIndicator('❚❚'); // Afficher l'icône pause
             }
-
-            // Inverser l'état de lecture
-            isPlaying = !isPlaying;
+             // L'état isPlaying sera mis à jour par onPlayerStateChange
 
         } catch (e) {
             console.error("Erreur lors du basculement lecture/pause:", e);
@@ -1238,37 +1263,35 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
 
         if (!youtubePlayer) return;
 
-        const rect = progressContainer.getBoundingClientRect();
-        const clickPosition = (e.clientX - rect.left) / rect.width;
-        const seekTime = clickPosition * youtubePlayer.getDuration();
+        try {
+            const rect = progressContainer.getBoundingClientRect();
+            const clickPosition = (e.clientX - rect.left) / rect.width;
+            const duration = youtubePlayer.getDuration();
+            if(duration > 0) {
+                 const seekTime = clickPosition * duration;
+                 youtubePlayer.seekTo(seekTime, true);
 
-        youtubePlayer.seekTo(seekTime, true);
-
-        // Mettre à jour la barre de progression immédiatement
-        const percentage = (seekTime / youtubePlayer.getDuration()) * 100;
-        progressBar.style.width = `${percentage}%`;
+                 // Mettre à jour la barre de progression immédiatement
+                 const percentage = (seekTime / duration) * 100;
+                 progressBar.style.width = `${percentage}%`;
+                 // Si la vidéo était en pause, la relancer après le seek
+                 if (youtubePlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
+                     youtubePlayer.playVideo();
+                     overlay.classList.add('playing');
+                     showCenterIndicator('❚❚');
+                 }
+            }
+        } catch(e) {
+             console.error("Erreur lors du seek sur la barre de progression:", e);
+        }
     });
 
-    // Mettre à jour la barre de progression régulièrement
-    function updateProgressBar() {
-        if (!youtubePlayer || !isPlaying) return;
+     // Ne plus démarrer la mise à jour ici, elle sera gérée par onPlayerStateChange
+    // function updateProgressBar() { ... }
+    // setTimeout(updateProgressBar, 1000);
 
-        const currentTime = youtubePlayer.getCurrentTime() || 0;
-        const duration = youtubePlayer.getDuration() || 1;
-        const percentage = (currentTime / duration) * 100;
-
-        if (progressBar) {
-            progressBar.style.width = `${percentage}%`;
-        }
-
-        // Mettre à jour toutes les 250ms
-        setTimeout(updateProgressBar, 250);
-    }
-
-    // Démarrer la mise à jour de la barre de progression
-    setTimeout(updateProgressBar, 1000);
-
-    // Écouter les événements de l'API YouTube
+    // Écouter les événements de l'API YouTube pour mettre à jour l'état isPlaying localement
+    // (Bien que la mise à jour de la barre soit gérée par les fonctions start/stop)
     document.addEventListener('YT.PlayerState.PLAYING', function () {
         isPlaying = true;
         overlay.classList.add('playing');
@@ -1282,32 +1305,23 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
     document.addEventListener('YT.PlayerState.ENDED', function () {
         isPlaying = false;
         overlay.classList.remove('playing');
+         // Assurer que l'overlay n'affiche pas l'icône pause à la fin
+         showCenterIndicator('▶');
     });
 }
 
 // Fonction appelée lorsque le lecteur est prêt
 function onPlayerReady(event) {
+     // Cette fonction n'est appelée que lors de la TOUTE PREMIÈRE initialisation du lecteur
+     console.log("Lecteur YouTube prêt pour la première fois.");
+
     // Vérifier si le chargement a été annulé pendant la création du lecteur
     if (videoLoadingCancelled) {
-        console.log("Lecture annulée, le jeu a été réinitialisé");
-        if (youtubePlayer) {
+        console.log("Lecture annulée pendant onPlayerReady, le jeu a été réinitialisé");
+         // Ne pas détruire le lecteur ici non plus
+         if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
             youtubePlayer.stopVideo();
-
-            // Essayer de détruire le lecteur YouTube proprement
-            try {
-                youtubePlayer.destroy();
-            } catch (error) {
-                console.error("Erreur lors de la destruction du lecteur YouTube:", error);
-            }
-
-            youtubePlayer = null;
-
-            // Nettoyer aussi l'iframe
-            const youtubeContainer = document.getElementById('youtube-player');
-            if (youtubeContainer) {
-                youtubeContainer.innerHTML = '';
-            }
-        }
+         }
         isLoadingVideo = false;
         return;
     }
@@ -1322,7 +1336,9 @@ function onPlayerReady(event) {
         // Créer l'overlay personnalisé pour contrôler la vidéo sur les navigateurs standards
         createCustomYouTubeOverlay();
 
-        // Lancer la lecture automatiquement
+        // Lancer la lecture automatiquement SEULEMENT pour la première vidéo
+        // Les vidéos suivantes seront lancées par showVideoAndControls ou onPlayerStateChange
+        console.log("Lancement automatique de la première vidéo.");
         event.target.playVideo();
     } else {
         console.log("Navigateur Instagram détecté, attente du clic de l'utilisateur sur le bouton de lecture");
@@ -1337,10 +1353,14 @@ function onPlayerReady(event) {
 // Fonction appelée lorsque l'état du lecteur change
 function onPlayerStateChange(event) {
     // Si le chargement a été annulé, arrêter immédiatement la vidéo
+    // Ne plus détruire le lecteur ici
     if (videoLoadingCancelled) {
-        youtubePlayer.stopVideo();
-        youtubePlayer.destroy();
-        youtubePlayer = null;
+         if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
+            youtubePlayer.stopVideo();
+         }
+         stopProgressBarUpdate(); // Arrêter la barre aussi si annulé
+         // youtubePlayer.destroy(); // Ne pas détruire
+         // youtubePlayer = null; // Ne pas réinitialiser
         return;
     }
 
@@ -1348,17 +1368,93 @@ function onPlayerStateChange(event) {
     switch (event.data) {
         case YT.PlayerState.PLAYING:
             document.dispatchEvent(new Event('YT.PlayerState.PLAYING'));
+             // S'assurer que l'état isLoadingVideo est faux quand la lecture commence
+             isLoadingVideo = false;
+             startProgressBarUpdate(); // Démarrer la mise à jour de la barre
             break;
         case YT.PlayerState.PAUSED:
             document.dispatchEvent(new Event('YT.PlayerState.PAUSED'));
+            stopProgressBarUpdate(); // Arrêter la mise à jour de la barre
             break;
         case YT.PlayerState.ENDED:
             document.dispatchEvent(new Event('YT.PlayerState.ENDED'));
             console.log("Vidéo terminée");
+             stopProgressBarUpdate(); // Arrêter la mise à jour de la barre
             // Faire disparaître la vidéo et réinitialiser le jeu
             hideVideoAndReset();
             break;
+        // Gérer l'état UNSTARTED (après loadVideoById) pour lancer la lecture
+        case YT.PlayerState.UNSTARTED:
+             console.log("Vidéo chargée mais non démarrée (UNSTARTED). Lancement...");
+             stopProgressBarUpdate(); // Assurer que la barre est arrêtée/réinitialisée
+             if (youtubePlayer && typeof youtubePlayer.playVideo === 'function' && !isSpecialBrowser()) {
+                 youtubePlayer.playVideo(); // Tentera de jouer, l'état passera à PLAYING si succès
+             }
+             break;
+        // Gérer l'état BUFFERING pour s'assurer que isLoadingVideo est correct
+        case YT.PlayerState.BUFFERING:
+             console.log("Vidéo en mise en tampon (BUFFERING).");
+             isLoadingVideo = true; // Indiquer le chargement pendant le buffering
+             stopProgressBarUpdate(); // Arrêter pendant le buffering pour éviter les sauts
+             break;
+        // Gérer l'état CUED, pourrait arriver après loadVideoById si autoplay est désactivé
+        case YT.PlayerState.CUED:
+             console.log("Vidéo en attente (CUED).");
+             isLoadingVideo = false; // La vidéo est prête, mais pas en lecture
+             stopProgressBarUpdate(); // Assurer que la barre est arrêtée/réinitialisée
+             if (youtubePlayer && typeof youtubePlayer.playVideo === 'function' && !isSpecialBrowser()) {
+                 youtubePlayer.playVideo(); // Tentera de jouer
+             }
+             break;
     }
+}
+
+// Fonction pour mettre à jour la logique de la barre de progression
+function updateProgressBarLogic() {
+    const progressBar = document.querySelector('.progress-bar');
+    if (!youtubePlayer || !progressBar) return;
+
+    try {
+        const playerState = youtubePlayer.getPlayerState();
+        // Mettre à jour seulement si la vidéo est en cours de lecture
+        if (playerState === YT.PlayerState.PLAYING) {
+            const currentTime = youtubePlayer.getCurrentTime() || 0;
+            const duration = youtubePlayer.getDuration() || 1;
+            const percentage = (currentTime / duration) * 100;
+            progressBar.style.width = `${percentage}%`;
+        } else {
+             // Si la vidéo n'est pas en lecture, arrêter la mise à jour
+             stopProgressBarUpdate();
+        }
+    } catch (e) {
+        console.error("Erreur pendant la mise à jour de la barre de progression:", e);
+        stopProgressBarUpdate(); // Arrêter en cas d'erreur
+    }
+}
+
+// Fonction pour démarrer la mise à jour de la barre de progression
+function startProgressBarUpdate() {
+    // Effacer l'intervalle précédent s'il existe
+    if (progressBarIntervalId) {
+        clearInterval(progressBarIntervalId);
+    }
+    console.log("Démarrage de la mise à jour de la barre de progression.");
+    // Démarrer un nouvel intervalle
+    progressBarIntervalId = setInterval(updateProgressBarLogic, 250);
+}
+
+// Fonction pour arrêter la mise à jour de la barre de progression et la réinitialiser
+function stopProgressBarUpdate() {
+    if (progressBarIntervalId) {
+        clearInterval(progressBarIntervalId);
+        progressBarIntervalId = null;
+        console.log("Arrêt de la mise à jour de la barre de progression.");
+    }
+    // Ne pas réinitialiser la barre ici - la laisser à sa dernière position connue
+    // const progressBar = document.querySelector('.progress-bar');
+    // if (progressBar) {
+    //     progressBar.style.width = '0%';
+    // }
 }
 
 // Fonction pour effectuer des mises à jour DOM groupées
@@ -1469,29 +1565,28 @@ async function handleRevealedCardClick(event) {
     videoLoadingCancelled = true;
     isLoadingVideo = false;
 
-    // S'assurer que le lecteur YouTube est complètement détruit
+    // Mettre en pause et masquer le lecteur au lieu de le détruire
     if (youtubePlayer) {
         try {
             // Arrêter la vidéo immédiatement si le lecteur existe
             if (typeof youtubePlayer.stopVideo === 'function') {
-                youtubePlayer.stopVideo();
+                 youtubePlayer.stopVideo(); // Utiliser stopVideo pour être sûr
             }
+             stopProgressBarUpdate(); // Arrêter et réinitialiser la barre ici aussi
 
-            // Essayer de détruire le lecteur YouTube
-            if (typeof youtubePlayer.destroy === 'function') {
-                youtubePlayer.destroy();
-            }
+             // Ne plus détruire le lecteur
+             // if (typeof youtubePlayer.destroy === 'function') {
+             //     youtubePlayer.destroy();
+             // }
+             // youtubePlayer = null; // Ne pas réinitialiser
 
-            // Réinitialiser complètement la référence
-            youtubePlayer = null;
-
-            // Nettoyer aussi le contenu de l'iframe
-            const youtubeContainer = document.getElementById('youtube-player');
-            if (youtubeContainer) {
-                youtubeContainer.innerHTML = '';
-            }
+            // Nettoyer le contenu de l'iframe n'est plus nécessaire si on ne détruit pas
+            // const youtubeContainer = document.getElementById('youtube-player');
+            // if (youtubeContainer) {
+            //     youtubeContainer.innerHTML = '';
+            // }
         } catch (error) {
-            console.error("Erreur lors de la destruction du lecteur YouTube:", error);
+            console.error("Erreur lors de l'arrêt du lecteur YouTube:", error);
         }
     }
 
@@ -1959,51 +2054,7 @@ function isSpecialBrowser() {
     return false;
 }
 
-// Fonction pour créer et afficher le message Instagram
-function showInstagramMessage() {
-    // Ne pas afficher le message si déjà affiché
-    if (instagramMessageShown) {
-        return;
-    }
 
-    // Créer le conteneur du message
-    const messageContainer = document.createElement('div');
-    messageContainer.className = 'instagram-message';
-
-    // Appliquer les styles au conteneur
-    Object.assign(messageContainer.style, {
-        position: 'fixed',
-        top: 'calc(10px * var(--scale-ratio, 1))',
-        left: 'calc(10px * var(--scale-ratio, 1))',
-        right: 'calc(10px * var(--scale-ratio, 1))',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        color: 'white',
-        padding: 'calc(8px * var(--scale-ratio, 1))',
-        borderRadius: 'calc(8px * var(--scale-ratio, 1))',
-        zIndex: '10000',
-        textAlign: 'center',
-        fontSize: 'calc(13px * var(--scale-ratio, 1))',
-        fontFamily: 'Arial, Helvetica, sans-serif', // Police basique
-        boxShadow: '0 calc(4px * var(--scale-ratio, 1)) calc(20px * var(--scale-ratio, 1)) rgba(0, 0, 0, 0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-    });
-
-    // Texte du message avec instructions pour Instagram et flèche pointant vers le haut à droite
-    const messageText = document.createElement('div');
-    messageText.innerHTML = 'Ouvre la page dans ton navigateur web <span style="font-size:calc(13px * var(--scale-ratio, 1)); margin-left: calc(10px * var(--scale-ratio, 1));">&#8599;</span>';
-
-    // Ajouter les éléments au conteneur
-    messageContainer.appendChild(messageText);
-
-    // Ajouter le conteneur à la page
-    document.body.appendChild(messageContainer);
-
-    // Marquer le message comme affiché
-    instagramMessageShown = true;
-
-}
 
 // Initialiser les variables CSS au chargement de la page
 document.addEventListener('DOMContentLoaded', function () {
@@ -2016,12 +2067,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize DOM elements
     initializeDOMElements();
-
-    // Vérifier si nous sommes dans le navigateur Instagram
-    if (isSpecialBrowser()) {
-        // Afficher le message pour suggérer d'ouvrir dans un navigateur web
-        showInstagramMessage();
-    }
 
     // Set up dynamic text positioning
     updateTextPositions();
