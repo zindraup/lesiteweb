@@ -1000,7 +1000,7 @@ async function loadYouTubeVideo(videoId) {
                 'cc_load_policy': 0,
                 'color': 'white',
                 'playsinline': 1, // Important pour iOS
-                'mute': isInsta ? 0 : 1, // Pas de mode muet pour Instagram, mais actif ailleurs pour permettre l'autoplay
+                'mute': 0, // Pas de mode muet pour Instagram, mais actif ailleurs pour permettre l'autoplay
                 'origin': window.location.origin,
                 'enablejsapi': 1
             },
