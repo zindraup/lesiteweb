@@ -800,6 +800,7 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     justify-content: center;
     align-items: flex-end;
     cursor: pointer;
+    z-index: 10;
 }
 
 /* Contrôles personnalisés */
