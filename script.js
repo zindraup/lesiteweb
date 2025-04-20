@@ -360,9 +360,8 @@ function hideVideoAndReset() {
     // Grouper les mises à jour DOM pour éviter les reflows multiples
     batchDOMUpdates(() => {
         // S'assurer qu'il n'y a pas de classe instant-hide active
-        domElements.videoContainer.classList.add('instant-hide');
-        domElements.videoContainer.classList.remove('visible');
         domElements.videoContainer.style.display = 'none';
+        domElements.videoContainer.classList.remove('visible');
         domElements.buyButton.style.opacity = '0';
         domElements.buyButton.style.visibility = 'hidden';
         domElements.buyButton.style.pointerEvents = 'none';
@@ -1565,7 +1564,6 @@ async function handleRevealedCardClick(event) {
     }
 
     // Masquer immédiatement la vidéo (sans transition)
-    domElements.videoContainer.classList.add('instant-hide');
     domElements.videoContainer.style.display = 'none';
     domElements.videoContainer.classList.remove('visible');
 
@@ -1584,9 +1582,6 @@ async function handleRevealedCardClick(event) {
     // Faire pivoter la carte rapidement avant de réinitialiser tout le jeu
     const clickedCard = event.currentTarget;
     await resetCardWithAnimation(clickedCard);
-
-    // Retirer la classe d'instant-hide pour le prochain affichage
-    domElements.videoContainer.classList.remove('instant-hide');
 
     // Ensuite réinitialiser le jeu complet
     initializeGame();
