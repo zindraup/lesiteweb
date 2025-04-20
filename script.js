@@ -329,12 +329,10 @@ function resetUI() {
         domElements.videoContainer.classList.remove('instant-hide');
         domElements.videoContainer.classList.remove('visible');
         domElements.videoContainer.style.display = 'none';
-        domElements.buyButton.style.opacity = '0';
-        domElements.buyButton.style.visibility = 'hidden';
-        domElements.buyButton.style.pointerEvents = 'none';
-        domElements.downloadButton.style.opacity = '0';
-        domElements.downloadButton.style.visibility = 'hidden';
-        domElements.downloadButton.style.pointerEvents = 'none';
+        domElements.buyButton.classList.remove('visible');
+        domElements.buyButton.classList.add('hidden');
+        domElements.downloadButton.classList.remove('visible');
+        domElements.downloadButton.classList.add('hidden');
         domElements.prodTitle.classList.remove('visible');
         domElements.prodTitle.classList.add('hidden');
         domElements.bpmText.classList.remove('visible');
@@ -362,12 +360,10 @@ function hideVideoAndReset() {
         // S'assurer qu'il n'y a pas de classe instant-hide active
         domElements.videoContainer.style.display = 'none';
         domElements.videoContainer.classList.remove('visible');
-        domElements.buyButton.style.opacity = '0';
-        domElements.buyButton.style.visibility = 'hidden';
-        domElements.buyButton.style.pointerEvents = 'none';
-        domElements.downloadButton.style.opacity = '0';
-        domElements.downloadButton.style.visibility = 'hidden';
-        domElements.downloadButton.style.pointerEvents = 'none';
+        domElements.buyButton.classList.remove('visible');
+        domElements.buyButton.classList.add('hidden');
+        domElements.downloadButton.classList.remove('visible');
+        domElements.downloadButton.classList.add('hidden');
         domElements.prodTitle.classList.remove('visible');
         domElements.prodTitle.classList.add('hidden');
         domElements.bpmText.classList.remove('visible');
@@ -596,15 +592,14 @@ class AnimationSequence {
 
             // Mettre à jour l'apparence des boutons en fonction de la disponibilité des liens
             if (currentProduction && currentProduction.buy) {
+                domElements.buyButton.style.display = 'block';
                 domElements.buyButton.style.opacity = '1';
                 domElements.buyButton.style.visibility = 'visible';
                 domElements.buyButton.style.pointerEvents = 'auto';                
                 domElements.buyButton.style.cursor = 'pointer';
             } else {
-                domElements.buyButton.style.opacity = '0.5';
-                domElements.buyButton.style.visibility = 'visible';
-                domElements.buyButton.style.pointerEvents = 'auto';
-                domElements.buyButton.style.cursor = 'not-allowed';
+                domElements.buyButton.classList.remove('visible');
+                domElements.buyButton.classList.add('hidden');
             }
             
             // Gérer le bouton de téléchargement séparément
@@ -613,15 +608,14 @@ class AnimationSequence {
                                    (!isMobile && currentProduction.download_pc);
             
             if (currentProduction && hasDownloadLink) {
+                domElements.downloadButton.style.display = 'block';
                 domElements.downloadButton.style.opacity = '1';
                 domElements.downloadButton.style.visibility = 'visible';
                 domElements.downloadButton.style.pointerEvents = 'auto';
                 domElements.downloadButton.style.cursor = 'pointer';
             } else {
-                domElements.downloadButton.style.opacity = '0.5';
-                domElements.downloadButton.style.visibility = 'visible';
-                domElements.downloadButton.style.pointerEvents = 'auto'; 
-                domElements.downloadButton.style.cursor = 'not-allowed';
+                domElements.downloadButton.classList.remove('visible');
+                domElements.downloadButton.classList.add('hidden');
             }
 
             // Make sure selected card maintains its size
@@ -1532,6 +1526,10 @@ async function handleRevealedCardClick(event) {
     // Empêcher la propagation pour éviter de déclencher d'autres événements
     event.stopPropagation();
 
+    // Masquer immédiatement la vidéo (sans transition)
+    domElements.videoContainer.style.display = 'none';
+    domElements.videoContainer.classList.remove('visible');
+
     // Vérifier si l'animation est en cours
     if (isAnimating) {
         console.log("Animation en cours, clic ignoré");
@@ -1547,25 +1545,37 @@ async function handleRevealedCardClick(event) {
     videoLoadingCancelled = true;
     isLoadingVideo = false;
 
-    // Mettre en stop/arrêter le lecteur au lieu de le détruire
-    if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
-        try {
-            youtubePlayer.stopVideo(); // Utiliser stopVideo pour arrêter complètement
-            stopProgressBarUpdate();
-            // Réinitialiser la barre de progression
-            const progressBar = document.querySelector('.progress-bar');
-            if (progressBar) {
-                progressBar.style.width = '0%';
+    // --- MODIFICATION : Gestion conditionnelle du lecteur ---
+    if (isAnnoyingBrowser() && !iosFirstPlayDone) {
+        // Cas : Annoying Browser ET premier play NON effectué -> Détruire le lecteur
+        if (youtubePlayer && typeof youtubePlayer.destroy === 'function') {
+            try {
+                console.log("Annoying Browser & 1er play non fait: Destruction du lecteur YouTube.");
+                youtubePlayer.destroy();
+                youtubePlayer = null; // Très important de remettre à null
+            } catch (error) {
+                console.error("Erreur lors de la destruction du lecteur YouTube:", error);
+                youtubePlayer = null; // Assurer la mise à null même en cas d'erreur
             }
-            console.log("Lecteur YouTube arrêté lors du clic de réinitialisation.");
-        } catch (error) {
-            console.error("Erreur lors de l'arrêt du lecteur YouTube:", error);
+        }
+        stopProgressBarUpdate(); // Arrêter la barre dans tous les cas
+    } else {
+        // Cas : Navigateur normal OU Annoying Browser AVEC premier play effectué -> Arrêter la vidéo (sans détruire)
+        if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
+            try {
+                console.log("Réinitialisation standard: Arrêt de la vidéo YouTube.");
+                youtubePlayer.stopVideo(); // Utiliser stopVideo pour arrêter la lecture actuelle
+            } catch (error) {
+                console.error("Erreur lors de l'arrêt du lecteur YouTube:", error);
+            }
+        }
+        stopProgressBarUpdate(); // Arrêter la barre
+        // Réinitialiser la barre de progression visuellement si elle existe
+        const progressBar = document.querySelector('.progress-bar');
+        if (progressBar) {
+            progressBar.style.width = '0%';
         }
     }
-
-    // Masquer immédiatement la vidéo (sans transition)
-    domElements.videoContainer.style.display = 'none';
-    domElements.videoContainer.classList.remove('visible');
 
     // Masquer également les boutons et textes immédiatement
     domElements.buyButton.style.opacity = '0';
@@ -1584,7 +1594,7 @@ async function handleRevealedCardClick(event) {
     await resetCardWithAnimation(clickedCard);
 
     // Ensuite réinitialiser le jeu complet
-    initializeGame();
+    initializeGame(); // isAnimating sera remis à false à la fin
 }
 
 // Function to update text element positions based on window size
@@ -1711,25 +1721,35 @@ function updateTextPositions() {
         const buttonWidth = 180 * scaleRatio;
         const buttonHeight = 55 * scaleRatio;
         const buttonOffset = 350 * scaleRatio; // Distance depuis le centre de la vidéo
-        
+        const iconTextGap = 8 * scaleRatio; // Espace entre l'icône et le texte
+
         buyButton.style.position = 'fixed';
         buyButton.style.top = `${marginVertical + (buyButtonTopReference * scaleRatio)}px`;
         buyButton.style.left = `calc(50% + ${buttonOffset}px)`; // À droite de la vidéo
         buyButton.style.transform = 'translateY(-75%)';
         buyButton.style.width = `${buttonWidth}px`;
         buyButton.style.height = `${buttonHeight}px`;
-        
+
+        // Centrer le contenu (icône + texte) avec Flexbox
+        buyButton.style.display = 'flex';
+        buyButton.style.alignItems = 'center'; // Centrage vertical
+        buyButton.style.justifyContent = 'center'; // Centrage horizontal
+        buyButton.style.gap = `${iconTextGap}px`; // Espace entre icône et texte
+
         // Taille du texte dans le bouton
         const buyButtonText = buyButton.querySelector('span');
         if (buyButtonText) {
             buyButtonText.style.fontSize = `${14.5 * scaleRatio}px`;
+            // Assurer que le texte ne prend pas toute la largeur et permet le centrage
+            buyButtonText.style.flexShrink = '0';
         }
-        
+
         // Taille de l'icône
         const buyButtonIcon = buyButton.querySelector('img');
         if (buyButtonIcon) {
             buyButtonIcon.style.width = `${24 * scaleRatio}px`;
             buyButtonIcon.style.height = `${24 * scaleRatio}px`;
+            buyButtonIcon.style.flexShrink = '0'; // Empêcher l'icône de rétrécir
         }
     }
 
@@ -1738,25 +1758,34 @@ function updateTextPositions() {
         const buttonWidth = 180 * scaleRatio;
         const buttonHeight = 55 * scaleRatio;
         const buttonOffset = 350 * scaleRatio; // Distance depuis le centre de la vidéo
-        
+        const iconTextGap = 8 * scaleRatio; // Espace entre l'icône et le texte
+
         downloadButton.style.position = 'fixed';
         downloadButton.style.top = `${marginVertical + (downloadButtonTopReference * scaleRatio)}px`;
         downloadButton.style.left = `calc(50% - ${buttonOffset}px)`; // À gauche de la vidéo
         downloadButton.style.transform = 'translateX(-100%) translateY(-75%)'; // Décaler à gauche de sa propre largeur
         downloadButton.style.width = `${buttonWidth}px`;
         downloadButton.style.height = `${buttonHeight}px`;
-        
+
+        // Centrer le contenu (icône + texte) avec Flexbox
+        downloadButton.style.display = 'flex';
+        downloadButton.style.alignItems = 'center'; // Centrage vertical
+        downloadButton.style.justifyContent = 'center'; // Centrage horizontal
+        downloadButton.style.gap = `${iconTextGap}px`; // Espace entre icône et texte
+
         // Taille du texte dans le bouton
         const downloadButtonText = downloadButton.querySelector('span');
         if (downloadButtonText) {
-            downloadButtonText.style.fontSize = `${14.5 * scaleRatio}px`;
+            downloadButtonText.style.fontSize = `${14 * scaleRatio}px`;
+            downloadButtonText.style.flexShrink = '0';
         }
-        
+
         // Taille de l'icône
         const downloadButtonIcon = downloadButton.querySelector('img');
         if (downloadButtonIcon) {
-            downloadButtonIcon.style.width = `${24 * scaleRatio}px`;
-            downloadButtonIcon.style.height = `${24 * scaleRatio}px`;
+            downloadButtonIcon.style.width = `${22 * scaleRatio}px`;
+            downloadButtonIcon.style.height = `${22 * scaleRatio}px`;
+            downloadButtonIcon.style.flexShrink = '0'; // Empêcher l'icône de rétrécir
         }
     }
 
@@ -2378,8 +2407,9 @@ function updateTextPositionsVertical() {
     if (buyButton) {
         const buttonHorizontalShift = 220;
         const buyButtonTopReference = 1120;
-        const buttonWidth = 250 * scaleRatio;
+        const buttonWidth = 260 * scaleRatio;
         const buttonHeight = 80 * scaleRatio;
+        const iconTextGap = 10 * scaleRatio; // Espace entre l'icône et le texte
 
         buyButton.style.position = 'fixed';
         buyButton.style.top = `${marginVertical + (buyButtonTopReference * scaleRatio)}px`;
@@ -2388,10 +2418,19 @@ function updateTextPositionsVertical() {
         buyButton.style.width = `${buttonWidth}px`;
         buyButton.style.height = `${buttonHeight}px`;
 
+        // Utiliser Flexbox pour centrer l'icône et le texte
+        buyButton.style.display = 'flex';
+        buyButton.style.alignItems = 'center'; // Centrage vertical
+        buyButton.style.justifyContent = 'center'; // Centrage horizontal
+        buyButton.style.gap = `${iconTextGap}px`; // Espace entre icône et texte
+
         // Taille du texte dans le bouton
         const buyButtonText = buyButton.querySelector('span');
         if (buyButtonText) {
-            buyButtonText.style.fontSize = `${20 * scaleRatio}px`;
+            buyButtonText.style.fontSize = `${21 * scaleRatio}px`;
+            // Assurer que le texte ne prend pas de marge par défaut qui interfère
+            buyButtonText.style.margin = '0';
+            buyButtonText.style.padding = '0';
         }
 
         // Taille de l'icône
@@ -2399,14 +2438,18 @@ function updateTextPositionsVertical() {
         if (buyButtonIcon) {
             buyButtonIcon.style.width = `${40 * scaleRatio}px`;
             buyButtonIcon.style.height = `${40 * scaleRatio}px`;
+            // Assurer que l'icône ne prend pas de marge par défaut qui interfère
+            buyButtonIcon.style.margin = '0';
+            buyButtonIcon.style.padding = '0';
         }
     }
 
     if (downloadButton) {
         const buttonHorizontalShift = 220;
         const downloadButtonTopReference = 1120;
-        const buttonWidth = 250 * scaleRatio;
+        const buttonWidth = 260 * scaleRatio;
         const buttonHeight = 80 * scaleRatio;
+        const iconTextGap = 10 * scaleRatio; // Espace entre l'icône et le texte
 
         downloadButton.style.position = 'fixed';
         downloadButton.style.top = `${marginVertical + (downloadButtonTopReference * scaleRatio)}px`;
@@ -2415,17 +2458,29 @@ function updateTextPositionsVertical() {
         downloadButton.style.width = `${buttonWidth}px`;
         downloadButton.style.height = `${buttonHeight}px`;
 
+        // Utiliser Flexbox pour centrer l'icône et le texte
+        downloadButton.style.display = 'flex';
+        downloadButton.style.alignItems = 'center'; // Centrage vertical
+        downloadButton.style.justifyContent = 'center'; // Centrage horizontal
+        downloadButton.style.gap = `${iconTextGap}px`; // Espace entre icône et texte
+
         // Taille du texte dans le bouton
         const downloadButtonText = downloadButton.querySelector('span');
         if (downloadButtonText) {
-            downloadButtonText.style.fontSize = `${20 * scaleRatio}px`;
+            downloadButtonText.style.fontSize = `${19 * scaleRatio}px`;
+            // Assurer que le texte ne prend pas de marge par défaut qui interfère
+            downloadButtonText.style.margin = '0';
+            downloadButtonText.style.padding = '0';
         }
 
         // Taille de l'icône
         const downloadButtonIcon = downloadButton.querySelector('img');
         if (downloadButtonIcon) {
-            downloadButtonIcon.style.width = `${38 * scaleRatio}px`;
-            downloadButtonIcon.style.height = `${36 * scaleRatio}px`;
+            downloadButtonIcon.style.width = `${36 * scaleRatio}px`;
+            downloadButtonIcon.style.height = `${34 * scaleRatio}px`;
+            // Assurer que l'icône ne prend pas de marge par défaut qui interfère
+            downloadButtonIcon.style.margin = '0';
+            downloadButtonIcon.style.padding = '0';
         }
     }
 }
