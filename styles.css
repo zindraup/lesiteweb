@@ -113,6 +113,7 @@ body {
     border-radius: var(--decorative-card-border-radius);
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     opacity: 1;
+    will-change: transform, opacity;
 }
 
 h1 {
@@ -203,7 +204,7 @@ h1.hidden {
     position: absolute;
     /* Width and height now set dynamically in JavaScript */
     transform-style: preserve-3d;
-    will-change: transform;
+    will-change: transform, opacity;
     cursor: pointer;
     transition: all var(--card-transition);
     transform-origin: center center;
@@ -217,7 +218,7 @@ h1.hidden {
     transform-style: preserve-3d;
     transform: scale(1);
     transition: transform 0.3s ease-out;
-    will-change: transform;
+    will-change: transform, opacity;
 }
 
 /* Card faces */
@@ -232,6 +233,7 @@ h1.hidden {
     justify-content: center;
     border-radius: var(--card-border-radius);
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    will-change: transform, opacity;
 }
 
 .card-front {
@@ -240,6 +242,7 @@ h1.hidden {
     background-repeat: no-repeat;
     background-position: center;
     transform: rotateY(0);
+    will-change: transform, opacity;
 }
 
 .card-back {
@@ -255,6 +258,7 @@ h1.hidden {
     font-size: 1.5em;
     text-shadow: none;
     opacity: 0;
+    will-change: transform, opacity;
 }
 
 .card-back.metal-hard {
@@ -272,15 +276,18 @@ h1.hidden {
     /* transform: rotate(0) translateY(0) scale(var(--card-scale)) !important; */
     transform: rotate(0) translateY(0) !important;
     z-index: 10;
+    will-change: transform, opacity;
 }
 
 .card.selected.descend {
     transform: rotate(0) translateY(var(--card-descend-distance)) !important;
+    will-change: transform, opacity;
 }
 
 .card.revealed .card-inner {
     transform: rotateY(180deg) rotateZ(90deg) !important;
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
 }
 
 /* Fade out animation for other cards */
@@ -289,6 +296,7 @@ h1.hidden {
     pointer-events: none;
     transform: translateY(100px) scale(0.8);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
 }
 
 /* CONTAINER YOUTUBE */
@@ -305,6 +313,7 @@ h1.hidden {
     pointer-events: none;
     z-index: 1;
     background-color: #000;
+    will-change: transform, opacity;
 }
 
 /* Classe pour masquer instantanément sans transition */
@@ -325,6 +334,7 @@ h1.hidden {
     background-color: #000;
     pointer-events: none !important;
     z-index: 5; /* Assurez-vous que c'est sous l'overlay mais au-dessus des autres éléments */
+    will-change: transform, opacity;
 }
 
 
@@ -365,6 +375,7 @@ h1.hidden {
     justify-content: center;
     align-items: center;
     transform-style: preserve-3d;
+    will-change: transform, opacity;
 }
 
 /* Animation des cartes non sélectionnées */
@@ -374,12 +385,14 @@ h1.hidden {
     transform: translateY(100px) scale(0.8);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     visibility: hidden;
+    will-change: transform, opacity;
 }
 
 /* Position de la carte sélectionnée */
 .card.selected {
     transform: rotate(0) translateY(0) !important;
     z-index: 10;
+    will-change: transform, opacity;
 }
 
 .card-front, .card-back {
@@ -396,6 +409,7 @@ h1.hidden {
     border-radius: var(--card-border-radius);
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     transition: opacity 0.3s ease;
+    will-change: transform, opacity;
 }
 
 .card-front {
@@ -405,6 +419,7 @@ h1.hidden {
     background-position: center;
     color: transparent;
     transform: rotateY(0);
+    will-change: transform, opacity;
 }
 
 .card-back {
@@ -420,6 +435,7 @@ h1.hidden {
     font-size: 1.5em;
     text-shadow: none;
     opacity: 0;
+    will-change: transform, opacity;
 }
 
 .card-back.metal-hard {
