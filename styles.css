@@ -571,6 +571,7 @@ h1.hidden {
         0 calc(var(--button-border-radius))
     );
     pointer-events: auto;
+    visibility: hidden;
 }
 
 .buy-button img, .download-button img {
