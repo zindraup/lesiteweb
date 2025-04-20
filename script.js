@@ -328,7 +328,7 @@ function resetUI() {
         // S'assurer qu'il n'y a pas de classe instant-hide active
         domElements.videoContainer.classList.remove('instant-hide');
         domElements.videoContainer.classList.remove('visible');
-        domElements.videoContainer.style.transform = 'translate(-50%, -80%) scale(0.8)';
+        domElements.videoContainer.style.display = 'none';
         domElements.buyButton.style.opacity = '0';
         domElements.buyButton.style.visibility = 'hidden';
         domElements.buyButton.style.pointerEvents = 'none';
@@ -362,7 +362,7 @@ function hideVideoAndReset() {
         // S'assurer qu'il n'y a pas de classe instant-hide active
         domElements.videoContainer.classList.add('instant-hide');
         domElements.videoContainer.classList.remove('visible');
-        domElements.videoContainer.style.transform = 'translate(-50%, -80%) scale(0.8)';
+        domElements.videoContainer.style.display = 'none';
         domElements.buyButton.style.opacity = '0';
         domElements.buyButton.style.visibility = 'hidden';
         domElements.buyButton.style.pointerEvents = 'none';
@@ -540,6 +540,9 @@ class AnimationSequence {
         card.style.width = currentWidth;
         card.style.height = currentHeight;
 
+        // Afficher la vidéo
+        domElements.videoContainer.style.display = 'block';
+
         // La classe descend va maintenant utiliser la variable CSS pour la distance
         card.classList.add('descend');
         await this.delay(150); // Attendre la descente
@@ -580,7 +583,6 @@ class AnimationSequence {
         // Regrouper les mises à jour DOM pour éviter les reflows multiples
         batchDOMUpdates(() => {
             domElements.videoContainer.classList.add('visible');
-
             // Update the transform property for the visible state (position ajustée à 425px)
             domElements.videoContainer.style.transform = 'translate(-50%, -45%) scale(1)';
 
@@ -1564,6 +1566,7 @@ async function handleRevealedCardClick(event) {
 
     // Masquer immédiatement la vidéo (sans transition)
     domElements.videoContainer.classList.add('instant-hide');
+    domElements.videoContainer.style.display = 'none';
     domElements.videoContainer.classList.remove('visible');
 
     // Masquer également les boutons et textes immédiatement
