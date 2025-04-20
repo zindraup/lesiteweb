@@ -2626,7 +2626,7 @@ function isAnnoyingBrowser() {
         // C'est Instagram
         return true;
     }
-    if (/TikTok/.test(userAgent)) {
+    if (/TikTok|Bytedance|BytedanceWebview|ByteLocale|trill|musical_ly/.test(userAgent)) {
         // C'est TikTok
         return true;
     }
@@ -2640,6 +2640,9 @@ function isAnnoyingBrowser() {
             if (document.referrer.includes('tiktok.com')) {
                 return true;
             }
+            if (document.referrer.includes('bytedance.com')) {
+                return true;
+            }
         }
     } catch (e) {
         console.warn("Impossible de vérifier document.referrer:", e);
@@ -2648,7 +2651,7 @@ function isAnnoyingBrowser() {
     // Certaines implémentations WebView modifient aussi window.navigator
     try {
         if (window.navigator.userAgent && 
-           (/Instagram|TikTok/.test(window.navigator.userAgent))) {
+           (/Instagram|TikTok|Bytedance|BytedanceWebview|ByteLocale|trill|musical_ly/.test(window.navigator.userAgent))) {
             return true;
         }
     } catch (e) {
@@ -2663,13 +2666,13 @@ function isInAppSocialBrowser() {
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     
     // Vérifier si l'agent utilisateur contient des indicateurs clés
-    if (/Instagram|TikTok/.test(userAgent)) {
+    if (/Instagram|TikTok|Bytedance|BytedanceWebview|ByteLocale|trill|musical_ly/.test(userAgent)) {
         return true;
     }
 
     // Vérifier l'URL de référence
     try {
-        if (document.referrer && /instagram\.com|tiktok\.com/.test(document.referrer)) {
+        if (document.referrer && /instagram\.com|tiktok\.com|bytedance\.com|bytedance\.com/.test(document.referrer)) {
             return true;
         }
     } catch (e) {
@@ -2678,7 +2681,7 @@ function isInAppSocialBrowser() {
     
      // Vérifier window.navigator.userAgent
      try {
-        if (window.navigator.userAgent && /Instagram|TikTok/.test(window.navigator.userAgent)) {
+        if (window.navigator.userAgent && /Instagram|TikTok|Bytedance|BytedanceWebview|ByteLocale|trill|musical_ly/.test(window.navigator.userAgent)) {
             return true;
         }
     } catch (e) {
