@@ -970,24 +970,30 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
 
 .replay-button {
     position: fixed;
-    /* Exemple de positionnement centré (adaptez !) */
-    top: 425px; /* Corresponds approx à la position Y de la vidéo */
+    top: 425px; /* Conserve la position verticale */
     left: 50%;
-    transform: translateX(-50%) translateY(-50%); /* Centre horizontalement, ajuste verticalement */
-    padding: 12px 25px; /* Adaptez la taille */
-    background-color: rgba(255, 255, 255, 0.85);
-    color: #222;
-    border: none;
-    border-radius: var(--button-border-radius); /* Utiliser variable existante */
-    cursor: pointer;
-    font-size: 18px; /* Adaptez la taille du texte */
-    font-weight: bold;
+    transform: translateX(-50%) translateY(-50%);
+
+    /* Ajustements pour un look plus iconique */
+    width: 60px;        /* Rendre plus carré/rond */
+    height: 60px;       /* Rendre plus carré/rond */
+    padding: 0;         /* Retirer le padding texte */
+    border-radius: 50%; /* Rendre circulaire */
+    font-size: 30px;    /* Augmenter taille flèche */
+    line-height: 60px;  /* Centrer verticalement la flèche (match height) */
+    display: flex;      /* Utiliser flex pour un meilleur contrôle */
+    justify-content: center; /* Centrer horizontalement */
+    align-items: center;    /* Centrer verticalement */
+
+    background-color: rgba(255, 204, 0, 0.85); /* Couleur jaune/orange */
+    color: #111;          /* Couleur flèche foncée */
+    border: 2px solid rgba(255, 255, 255, 0.5); /* Bordure claire */
     text-align: center;
-    z-index: 1002; /* Assurez-vous qu'il est au-dessus si nécessaire */
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 1002;
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.2s ease, background-color 0.2s ease; /* Ajouter transition transform/background */
     opacity: 1;
     visibility: visible;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* Classe pour cacher */
@@ -995,4 +1001,5 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+    transform: translateX(-50%) translateY(-50%) scale(0.8); /* Rétrécir en disparaissant */
 }
