@@ -967,3 +967,32 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
 .vertical-layout h1 {
     display: none;
 }
+
+.replay-button {
+    position: fixed;
+    /* Exemple de positionnement centré (adaptez !) */
+    top: 425px; /* Corresponds approx à la position Y de la vidéo */
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%); /* Centre horizontalement, ajuste verticalement */
+    padding: 12px 25px; /* Adaptez la taille */
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #222;
+    border: none;
+    border-radius: var(--button-border-radius); /* Utiliser variable existante */
+    cursor: pointer;
+    font-size: 18px; /* Adaptez la taille du texte */
+    font-weight: bold;
+    text-align: center;
+    z-index: 1002; /* Assurez-vous qu'il est au-dessus si nécessaire */
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 1;
+    visibility: visible;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Classe pour cacher */
+.replay-button.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}

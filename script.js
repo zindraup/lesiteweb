@@ -35,7 +35,8 @@ function initializeDOMElements() {
         videoContainer: document.querySelector('.video-container'),
         buyButton: document.querySelector('.buy-button'),
         downloadButton: document.querySelector('.download-button'),
-        cards: document.querySelectorAll('.card')
+        cards: document.querySelectorAll('.card'),
+        replayButton: document.getElementById('replay-button') // <-- AJOUTER ICI
     };
 }
 
@@ -340,6 +341,11 @@ function resetUI() {
         
         // Reposition elements after changing their visibility
         updateTextPositions();
+
+        // Cacher le bouton Rejouer pendant la réinitialisation
+        if (domElements.replayButton) { 
+            domElements.replayButton.classList.add('hidden'); // <-- AJOUTER ICI
+        }
     });
 
     // Arrêter la mise à jour de la barre de progression (important)
@@ -371,6 +377,11 @@ function hideVideoAndReset() {
         
         // Reposition elements after changing their visibility
         updateTextPositions();
+
+        // Cacher le bouton Rejouer s'il était visible
+        if (domElements.replayButton) {
+            domElements.replayButton.classList.add('hidden'); // <-- AJOUTER ICI
+        }
     });
 
     // Arrêter la mise à jour de la barre de progression (important)
@@ -1416,8 +1427,7 @@ function onPlayerStateChange(event) {
             document.dispatchEvent(new Event('YT.PlayerState.ENDED'));
             console.log("Vidéo terminée (ENDED)");
             stopProgressBarUpdate();
-            // Faire disparaître la vidéo et réinitialiser le jeu
-            hideVideoAndReset();
+            actionsAfterVideoEnded();
             break;
         case YT.PlayerState.BUFFERING:
             console.log("Player state: BUFFERING");
@@ -1430,6 +1440,19 @@ function onPlayerStateChange(event) {
     }
 }
 
+// Fonction pour effectuer des actions après la fin de la vidéo
+function actionsAfterVideoEnded() {
+// Cacher la vidéo et afficher le bouton "Rejouer"
+    batchDOMUpdates(() => {
+        if (domElements.videoContainer) {
+            domElements.videoContainer.style.display = 'none'; // Cacher conteneur vidéo
+            domElements.videoContainer.classList.remove('visible'); // Retirer classe visible
+        }
+        if (domElements.replayButton) {
+            domElements.replayButton.classList.remove('hidden'); // Afficher bouton Rejouer
+        }
+    });
+}
 
 
 // Fonction pour effectuer des mises à jour DOM groupées
@@ -1574,6 +1597,10 @@ async function handleRevealedCardClick(event) {
         const progressBar = document.querySelector('.progress-bar');
         if (progressBar) {
             progressBar.style.width = '0%';
+        }
+         // Cacher le bouton Rejouer s'il était visible
+        if (domElements.replayButton) {
+            domElements.replayButton.classList.add('hidden');
         }
     }
 
