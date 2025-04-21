@@ -1004,3 +1004,272 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     pointer-events: none;
     transform: translateX(-50%) translateY(-50%) scale(0.8); /* Rétrécir en disparaissant */
 }
+
+/* Style pour le tooltip de la barre de progression */
+.seek-tooltip {
+  position: absolute;
+  bottom: 35px; /* Ajuster pour être au-dessus de la barre */
+  left: 50%; /* Position horizontale gérée par JS */
+  transform: translateX(-50%); /* Centrer le tooltip horizontalement */
+  background-color: rgba(255, 204, 0, 0.8);
+  color: rgb(0, 0, 0);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: Arial, sans-serif, bold; /* Police simple */
+  white-space: nowrap; /* Empêcher le retour à la ligne */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  pointer-events: none; /* Important pour ne pas gêner le glisser */
+  z-index: 15; /* Au-dessus des autres contrôles */
+}
+
+.seek-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- Écran de Fin de Vidéo --- */
+.end-screen-container {
+    position: fixed;
+    inset: 0; /* Couvre tout l'écran */
+    background-color: rgba(0, 0, 0, 0.6); /* Fond sombre semi-transparent */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 1000; /* Au-dessus de tout le reste */
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    backdrop-filter: blur(10px); /* Effet de flou */
+    -webkit-backdrop-filter: blur(5px);
+    cursor: pointer; /* Clic pour fermer */
+}
+
+.end-screen-container.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.end-screen-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Améliore le centrage vertical */
+    gap: 30px;
+    padding: 20px;
+    text-align: center;
+    transform: scale(0.95);
+    transition: transform 0.5s ease;
+    width: 100%;
+    max-width: 800px;
+}
+
+.end-screen-container.visible .end-screen-content {
+    transform: scale(1);
+}
+
+/* Style unique pour le bouton de téléchargement dans l'écran de fin */
+.end-screen-container .download-button {
+    position: static !important; /* Changé de relative à static pour un meilleur centrage */
+    width: clamp(200px, 42vw, 320px) !important;
+    height: clamp(60px, 10vw, 90px) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    left: auto !important; /* Réinitialiser left/right pour éviter les conflits */
+    right: auto !important;
+    top: auto !important;
+    
+    /* Aspect visuel attractif */
+    background: linear-gradient(145deg, #ffe44d, #ffcc00) !important; 
+    border: 6px solid rgba(0, 0, 0, 1) !important;
+    border-radius: 19px !important;
+    
+    /* Animation de pulsation - s'assurer qu'elle est bien appliquée */
+    animation: downloadButtonPulse 1s infinite alternate ease-in-out !important;
+    
+    /* Assurer la visibilité */
+    z-index: 1000 !important;
+    pointer-events: auto !important;
+    
+    /* Clip-path pourrait interférer avec l'animation, la désactiver pour l'écran de fin */
+    clip-path: none !important;
+}
+
+/* Texte du bouton plus grand et impactant, mais corrigé pour ne pas déborder */
+.end-screen-container .download-button span {
+    font-size: clamp(0.6rem, 1.4vw, 0.9rem) !important; /* Taille encore plus réduite */
+    font-weight: 900 !important;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    color: black !important;
+    white-space: nowrap !important; /* Empêcher le texte de revenir à la ligne */
+    padding: 0 5px !important; /* Réduire l'espace pour le texte */
+    max-width: 90% !important; /* Limiter la largeur maximale */
+    order: 1 !important; /* Pour changer l'ordre : texte d'abord */
+    letter-spacing: 0.5px !important; /* Meilleure lisibilité */
+}
+
+/* Icône plus grande */
+.end-screen-container .download-button img {
+    width: clamp(13px, 1.4vw, 20px) !important; /* Taille encore plus réduite */
+    height: auto !important;
+    filter: brightness(0) !important;
+    margin-left: 5px !important; /* Espace entre le texte et l'icône à droite */
+    margin-right: 0 !important; /* Supprimer la marge droite précédente */
+    order: 2 !important; /* Pour changer l'ordre : icône après le texte */
+}
+
+/* Animation de pulsation pour attirer l'attention - plus visible */
+@keyframes downloadButtonPulse {
+    0% {
+        box-shadow: 0 0 40px rgba(255, 204, 0, 0.7),
+                    0 0 80px rgba(255, 204, 0, 0.4),
+                    0 0 120px rgba(255, 204, 0, 0.2);
+        transform: scale(1) !important;
+    }
+    100% {
+        box-shadow: 0 0 45px rgba(255, 204, 0, 0.9), 
+                    0 0 90px rgba(255, 204, 0, 0.6),
+                    0 0 135px rgba(255, 204, 0, 0.4);
+        transform: scale(1) !important;
+    }
+}
+
+/* Effet hover encore plus intense */
+.end-screen-container .download-button:hover {
+    transform: scale(1) !important;
+    box-shadow: 0 0 70px rgba(255, 204, 0, 1), 
+                0 0 140px rgba(255, 204, 0, 0.7),
+                0 0 200px rgba(255, 204, 0, 0.5),
+                inset 0 0 40px rgba(255, 255, 255, 0.6) !important;
+    background: linear-gradient(145deg, #ffee77, #ffdd33) !important;
+}
+
+/* Style pour le bouton d'informations (ancien bouton d'achat) dans l'écran de fin */
+.end-screen-container .buy-button {
+    display: flex !important; /* Rendre visible au lieu de le cacher */
+    position: static !important;
+    width: clamp(105px, 22.5vw, 165px) !important; /* 25% plus petit */
+    height: clamp(30px, 5.25vw, 37.5px) !important; /* 25% plus petit */
+    opacity: 0.85 !important;
+    visibility: visible !important;
+    margin: 15px auto 0 auto !important; /* Marge en haut pour le séparer du bouton de téléchargement */
+    transform: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    /* Style plus subtil */
+    background: rgba(255, 204, 0, 1) !important; 
+    border: 2px solid rgba(0, 0, 0, 1) !important;
+    box-shadow: 
+        0 0 15px rgba(255, 255, 255, 0.3),
+        inset 0 0 10px rgba(255, 255, 255, 0.2) !important;
+    
+    /* Assurer la visibilité */
+    z-index: 1010 !important;
+    pointer-events: auto !important;
+    clip-path: none !important;
+}
+
+/* Texte du bouton d'informations */
+.end-screen-container .buy-button span {
+    font-size: clamp(0.6rem, 1.35vw, 0.75rem) !important; /* 25% plus petit */
+    font-weight: 700 !important;
+    color: #000000 !important;
+    white-space: nowrap !important;
+}
+
+/* Effet hover pour le bouton d'informations */
+.end-screen-container .buy-button:hover {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5) !important;
+}
+
+/* S'assurer que le bouton est vraiment au centre */
+#end-screen-buttons {
+    display: flex;
+    flex-direction: column; /* Afficher les boutons en colonne */
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* Style pour le timer */
+.end-screen-timer {
+    position: relative;
+    margin: 0 auto 15px auto;
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    color: rgba(255, 204, 0, 1);
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+    z-index: 1020;
+    pointer-events: none;
+    font-family: 'SAINT-DROP', 'Impact', 'Arial Black', sans-serif;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 20px;
+    border-radius: 25px;
+    border: 2px solid rgba(255, 204, 0, 0.8);
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+    width: fit-content;
+}
+
+/* Animation de pulsation pour le timer lorsqu'il est sous 3 secondes */
+@keyframes timerPulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.end-screen-timer.urgent {
+    animation: timerPulse 0.6s infinite;
+    color: #ff3a3a;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+    border-color: rgba(255, 0, 0, 0.8);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+/* Masquer le titre de l'écran de fin pour simplicité */
+.end-screen-title {
+    display: none;
+}
+
+/* Indice de clic minimaliste */
+.end-screen-restart-hint {
+    font-size: clamp(0.6rem, 1.35vw, 0.75rem); /* 25% plus petit */
+    color: rgba(255, 204, 0, 1);
+    margin-top: 19px;
+    pointer-events: none;
+}
+
+/* Styles responsifs pour mobile */
+@media (max-width: 768px) {
+    .end-screen-container .download-button {
+        width: clamp(180px, 70vw, 250px) !important;
+        height: clamp(50px, 12vw, 70px) !important;
+        border-width: 4px !important;
+    }
+    
+    .end-screen-container .download-button span {
+        font-size: clamp(0.7rem, 3.5vw, 0.9rem) !important;
+    }
+    
+    .end-screen-container .download-button img {
+        width: clamp(16px, 4vw, 24px) !important;
+    }
+    
+    .end-screen-container .buy-button {
+        width: clamp(90px, 40vw, 130px) !important;
+    }
+    
+    .end-screen-timer {
+        font-size: clamp(1rem, 5vw, 1.4rem) !important;
+        padding: 3px 15px !important;
+    }
+}

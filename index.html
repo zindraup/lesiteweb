@@ -128,8 +128,8 @@
 
     <!-- Bouton de téléchargement -->
     <div class="download-button">
-      <img src="images/download.png" alt="Download" />
       <span>TÉLÉCHARGER</span>
+      <img src="images/download.png" alt="Download" />
     </div>
 
     <!-- Bouton d'achat -->
@@ -140,6 +140,18 @@
 
     <!-- Bouton de rejouer -->
     <div id="replay-button" class="replay-button hidden">↓</div>
+
+    <!-- Écran de fin de vidéo -->
+    <div id="end-screen-container" class="end-screen-container">
+        <div class="end-screen-content">
+            <div id="end-screen-title" class="end-screen-title"></div>
+            <div id="end-screen-buttons" class="end-screen-buttons">
+                <!-- Les boutons Acheter/Télécharger seront déplacés ici par JS -->
+            </div>
+            <div id="end-screen-timer" class="end-screen-timer">15</div>
+            <div class="end-screen-restart-hint">Cliquez pour rejouer</div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
     <script data-goatcounter="https://dropthemic.goatcounter.com/count"

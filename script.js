@@ -36,7 +36,13 @@ function initializeDOMElements() {
         buyButton: document.querySelector('.buy-button'),
         downloadButton: document.querySelector('.download-button'),
         cards: document.querySelectorAll('.card'),
-        replayButton: document.getElementById('replay-button') // <-- AJOUTER ICI
+        // Ancien bouton replay, peut être retiré si vous supprimez l'élément HTML
+        // replayButton: document.getElementById('replay-button'), 
+        // Nouveaux éléments écran de fin
+        endScreenContainer: document.getElementById('end-screen-container'),
+        endScreenTitle: document.getElementById('end-screen-title'),
+        endScreenButtons: document.getElementById('end-screen-buttons'),
+        endScreenTimer: document.getElementById('end-screen-timer')
     };
 }
 
@@ -321,39 +327,53 @@ function setupCardHoverEffects() {
 
 // Fonction commune pour réinitialiser l'interface utilisateur
 function resetUI() {
-    // Indiquer que tout chargement vidéo en cours doit être annulé
     videoLoadingCancelled = true;
-
-    // Grouper les mises à jour DOM pour éviter les reflows multiples
     batchDOMUpdates(() => {
-        // S'assurer qu'il n'y a pas de classe instant-hide active
-        domElements.videoContainer.classList.remove('instant-hide');
-        domElements.videoContainer.classList.remove('visible');
-        domElements.videoContainer.style.display = 'none';
-        domElements.buyButton.classList.remove('visible');
-        domElements.buyButton.classList.add('hidden');
-        domElements.downloadButton.classList.remove('visible');
-        domElements.downloadButton.classList.add('hidden');
-        domElements.prodTitle.classList.remove('visible');
-        domElements.prodTitle.classList.add('hidden');
-        domElements.bpmText.classList.remove('visible');
-        domElements.bpmText.classList.add('hidden');
-        
-        // Reposition elements after changing their visibility
-        updateTextPositions();
-
-        // Cacher le bouton Rejouer pendant la réinitialisation
-        if (domElements.replayButton) { 
-            domElements.replayButton.classList.add('hidden'); // <-- AJOUTER ICI
+        // Cacher conteneur vidéo
+         if (domElements.videoContainer) {
+            domElements.videoContainer.style.display = 'none';
+            domElements.videoContainer.classList.remove('visible');
         }
+
+        // --- AJOUT/MODIFICATION : Cacher explicitement les boutons ---
+        if (domElements.buyButton) {
+            domElements.buyButton.style.opacity = '0';
+            domElements.buyButton.style.visibility = 'hidden';
+            domElements.buyButton.style.pointerEvents = 'none';
+            domElements.buyButton.style.display = 'none'; // <-- Ajouter display: none
+        }
+        if (domElements.downloadButton) {
+            domElements.downloadButton.style.opacity = '0';
+            domElements.downloadButton.style.visibility = 'hidden';
+            domElements.downloadButton.style.pointerEvents = 'none';
+            domElements.downloadButton.style.display = 'none'; // <-- Ajouter display: none
+        }
+        // --- FIN ---
+
+        // Cacher les textes
+        if (domElements.prodTitle) {
+            domElements.prodTitle.classList.remove('visible');
+            domElements.prodTitle.classList.add('hidden');
+        }
+        if (domElements.bpmText) {
+            domElements.bpmText.classList.remove('visible');
+            domElements.bpmText.classList.add('hidden');
+        }
+        // Cacher l'écran de fin
+        if (domElements.endScreenContainer) {
+            domElements.endScreenContainer.classList.remove('visible');
+        }
+        // Cacher l'ancien bouton Rejouer (flèche)
+        const oldReplayButton = document.getElementById('replay-button');
+        if (oldReplayButton) {
+            oldReplayButton.classList.add('hidden');
+        }
+
+        updateTextPositions(); // Appelée APRÈS avoir caché les éléments
     });
-
-    // Arrêter la mise à jour de la barre de progression (important)
-    stopProgressBarUpdate(); 
-    console.log("resetUI: Arrêt de la barre de progression.");
-
-    // Réinitialiser les flags de chargement vidéo
+    stopProgressBarUpdate();
     isLoadingVideo = false;
+    console.log("resetUI: Éléments cachés (y compris boutons avec display:none).");
 }
 
 // Fonction pour masquer la vidéo et réinitialiser le jeu
@@ -586,54 +606,66 @@ class AnimationSequence {
         // S'assurer que l'overlay est créé et dans le bon état (passif/actif)
         createCustomYouTubeOverlay();
 
-        // Regrouper les mises à jour DOM pour éviter les reflows multiples
         batchDOMUpdates(() => {
-            domElements.videoContainer.classList.add('visible');
-            // Update the transform property for the visible state (position ajustée à 425px)
-            domElements.videoContainer.style.transform = 'translate(-50%, -45%) scale(1)';
-
-            // Afficher le titre de la production et le BPM en même temps que la vidéo
-            domElements.prodTitle.classList.remove('hidden');
-            domElements.prodTitle.classList.add('visible');
-
-            domElements.bpmText.classList.remove('hidden');
-            domElements.bpmText.classList.add('visible');
-
-            domElements.restartText.classList.add('visible');
-
-            // Mettre à jour l'apparence des boutons en fonction de la disponibilité des liens
-            if (currentProduction && currentProduction.buy) {
-                domElements.buyButton.style.display = 'block';
-                domElements.buyButton.style.opacity = '1';
-                domElements.buyButton.style.visibility = 'visible';
-                domElements.buyButton.style.pointerEvents = 'auto';                
-                domElements.buyButton.style.cursor = 'pointer';
-            } else {
-                domElements.buyButton.classList.remove('visible');
-                domElements.buyButton.classList.add('hidden');
-            }
-            
-            // Gérer le bouton de téléchargement séparément
-            const isMobile = isMobileDevice();
-            const hasDownloadLink = (isMobile && currentProduction.download_android) || 
-                                   (!isMobile && currentProduction.download_pc);
-            
-            if (currentProduction && hasDownloadLink) {
-                domElements.downloadButton.style.display = 'block';
-                domElements.downloadButton.style.opacity = '1';
-                domElements.downloadButton.style.visibility = 'visible';
-                domElements.downloadButton.style.pointerEvents = 'auto';
-                domElements.downloadButton.style.cursor = 'pointer';
-            } else {
-                domElements.downloadButton.classList.remove('visible');
-                domElements.downloadButton.classList.add('hidden');
+            // --- Afficher conteneur vidéo ---
+            if (domElements.videoContainer) {
+                 domElements.videoContainer.style.display = 'block'; // Rétablir display
+                 domElements.videoContainer.classList.add('visible');
+                 domElements.videoContainer.style.transform = 'translate(-50%, -45%) scale(1)';
             }
 
-            // Make sure selected card maintains its size
+            // --- Afficher les textes ---
+            if (domElements.prodTitle) {
+                domElements.prodTitle.classList.remove('hidden');
+                domElements.prodTitle.classList.add('visible');
+            }
+            if (domElements.bpmText) {
+                domElements.bpmText.classList.remove('hidden');
+                domElements.bpmText.classList.add('visible');
+            }
+            if (domElements.restartText) {
+                 domElements.restartText.classList.add('visible');
+            }
+
+            // --- Afficher les boutons (logique existante + display) ---
+            if (domElements.buyButton) {
+                domElements.buyButton.style.display = 'flex'; // <-- Rétablir display AVANT visibilité
+                if (currentProduction && currentProduction.buy) {
+                    domElements.buyButton.style.opacity = '1';
+                    domElements.buyButton.style.visibility = 'visible';
+                    domElements.buyButton.style.pointerEvents = 'auto';
+                    domElements.buyButton.style.cursor = 'pointer';
+                } else {
+                    // Styles pour bouton désactivé (garder visible mais grisé)
+                    domElements.buyButton.style.opacity = '0.5'; // Ou votre style désactivé
+                    domElements.buyButton.style.visibility = 'visible';
+                    domElements.buyButton.style.pointerEvents = 'auto'; // Garder cliquable pour voir le curseur not-allowed
+                    domElements.buyButton.style.cursor = 'not-allowed';
+                }
+            }
+
+            if (domElements.downloadButton) {
+                 domElements.downloadButton.style.display = 'flex'; // <-- Rétablir display AVANT visibilité
+                 const isMobile = isMobileDevice();
+                 const hasDownloadLink = (isMobile && currentProduction.download_android) ||
+                                       (!isMobile && currentProduction.download_pc);
+                 if (currentProduction && hasDownloadLink) {
+                    domElements.downloadButton.style.opacity = '1';
+                    domElements.downloadButton.style.visibility = 'visible';
+                    domElements.downloadButton.style.pointerEvents = 'auto';
+                    domElements.downloadButton.style.cursor = 'pointer';
+                } else {
+                    // Styles pour bouton désactivé
+                    domElements.downloadButton.style.opacity = '0.5';
+                    domElements.downloadButton.style.visibility = 'visible';
+                    domElements.downloadButton.style.pointerEvents = 'auto';
+                    domElements.downloadButton.style.cursor = 'not-allowed';
+                }
+            }
+            // --- Fin affichage boutons ---
+
             updateSelectedCard();
-
-            // Reposition elements after changing their visibility
-            updateTextPositions();
+            updateTextPositions(); // Repositionner après avoir TOUT rendu visible/caché
         });
     }
 }
@@ -687,13 +719,81 @@ async function resetCardWithAnimation(card) {
 async function initializeGame() {
     console.log("Initialisation du jeu...");
 
+    // Arrêter le timer de l'écran de fin s'il est en cours
+    if (endScreenTimerInterval) {
+        clearInterval(endScreenTimerInterval);
+        endScreenTimerInterval = null;
+    }
+
+    // Cacher l'écran de fin s'il est visible et retirer son listener
+    if (domElements.endScreenContainer && domElements.endScreenContainer.classList.contains('visible')) {
+         domElements.endScreenContainer.classList.remove('visible');
+         domElements.endScreenContainer.removeEventListener('click', handleEndScreenClick);
+    }
+    // Remettre les boutons dans le body (ou leur conteneur parent d'origine)
+    // Assumons que c'est document.body pour l'instant. Adaptez si nécessaire.
+    if (domElements.buyButton && domElements.downloadButton) {
+        // Vérifier s'ils sont actuellement dans l'écran de fin avant de les déplacer
+        if (domElements.endScreenButtons && domElements.endScreenButtons.contains(domElements.buyButton)) {
+             document.body.appendChild(domElements.buyButton);
+             document.body.appendChild(domElements.downloadButton);
+             console.log("Boutons remis dans document.body");
+        }
+    }
+    // Réinitialiser le texte des boutons à leur état initial
+    const downloadButtonText = domElements.downloadButton.querySelector('span');
+    if (downloadButtonText) {
+        downloadButtonText.textContent = 'TÉLÉCHARGER';
+    }
+    const buyButtonText = domElements.buyButton.querySelector('span');
+    if (buyButtonText) {
+        buyButtonText.textContent = 'ACHETER';
+    }
+
+    // Réinitialiser tous les styles des boutons
+    if (domElements.downloadButton) {
+        // Réinitialiser les styles du bouton de téléchargement
+        domElements.downloadButton.style = ""; // Effacer tous les styles inline
+        // Rétablir les styles de positionnement de base
+        domElements.downloadButton.style.opacity = '0';
+        domElements.downloadButton.style.visibility = 'hidden';
+        domElements.downloadButton.style.right = 'calc(50% + 280px)';
+        domElements.downloadButton.style.top = '40%';
+        domElements.downloadButton.style.transform = 'translateY(-75%)';
+        domElements.downloadButton.style.animation = 'none';
+        
+        // Réorganiser les éléments internes (remettre l'icône à gauche si nécessaire)
+        const img = domElements.downloadButton.querySelector('img');
+        const span = domElements.downloadButton.querySelector('span');
+        if (img && span) {
+            img.style = ""; // Réinitialiser les styles de l'image
+            span.style = ""; // Réinitialiser les styles du texte
+            // S'assurer que l'ordre est correct pour l'affichage normal (icône à gauche)
+            if (domElements.downloadButton.firstChild !== img) {
+                domElements.downloadButton.insertBefore(img, span);
+            }
+        }
+    }
+
+    if (domElements.buyButton) {
+        // Réinitialiser les styles du bouton d'achat
+        domElements.buyButton.style = ""; // Effacer tous les styles inline
+        // Rétablir les styles de positionnement de base
+        domElements.buyButton.style.opacity = '0';
+        domElements.buyButton.style.visibility = 'hidden';
+        domElements.buyButton.style.left = 'calc(50% + 280px)';
+        domElements.buyButton.style.top = '40%';
+        domElements.buyButton.style.transform = 'translateY(-75%)';
+        domElements.buyButton.style.animation = 'none';
+    }
+
     // Charger l'API YouTube
     loadYouTubeAPI();
 
     // Empêcher les clics pendant la réinitialisation
     isAnimating = true;
 
-    // Réinitialiser l'interface
+    // Réinitialiser l'interface (cachera aussi endScreenContainer via la classe)
     resetUI();
 
     // Identifier la carte sélectionnée (s'il y en a une)
@@ -1174,24 +1274,21 @@ function createCustomYouTubeOverlay() {
     const videoContainer = document.querySelector('.video-container');
     if (!videoContainer) return;
 
-    // Supprimer tout overlay existant pour éviter les doublons
     const existingOverlay = videoContainer.querySelector('.youtube-custom-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
     }
 
-    // Créer l'overlay principal
     const overlay = document.createElement('div');
-    overlay.className = 'youtube-custom-overlay'; // Sera rendu visible/invisible par CSS
+    overlay.className = 'youtube-custom-overlay';
 
-    // --- Contenu de l'overlay (indicateur, contrôles, barre de progression) ---
-    // Ajouter l'indicateur central pour play/pause
+    // --- Indicateur central ---
     const centerIndicator = document.createElement('div');
     centerIndicator.className = 'center-play-indicator';
-    centerIndicator.innerHTML = '▶'; // Icône Play simplifiée
+    centerIndicator.innerHTML = '▶';
     overlay.appendChild(centerIndicator);
 
-    // Créer le conteneur pour la barre de progression uniquement
+    // --- Contrôles (Barre de progression) ---
     const controls = document.createElement('div');
     controls.className = 'custom-video-controls';
     controls.style.opacity = '1'; // Rendre les contrôles toujours visibles
@@ -1199,8 +1296,6 @@ function createCustomYouTubeOverlay() {
     // Conteneur de la barre de progression
     const progressContainer = document.createElement('div');
     progressContainer.className = 'progress-container';
-
-    // Track visible de la barre de progression
     const progressTrack = document.createElement('div');
     progressTrack.className = 'progress-track';
     progressTrack.style.opacity = '0.9'; 
@@ -1208,30 +1303,32 @@ function createCustomYouTubeOverlay() {
     // Barre de progression
     const progressBar = document.createElement('div');
     progressBar.className = 'progress-bar';
-
-    // Assembler les éléments de progression
     progressTrack.appendChild(progressBar);
     progressContainer.appendChild(progressTrack);
-
-    // Ajouter la barre de progression au conteneur de contrôles
     controls.appendChild(progressContainer);
     overlay.appendChild(controls);
-    // -----------------------------------------------------------------------
 
-    // Ajouter l'overlay au conteneur vidéo (il sera initialement stylé par les modes)
+    // --- NOUVEAU : Création du Tooltip ---
+    const tooltipElement = document.createElement('div');
+    tooltipElement.id = 'seek-tooltip'; // Donner un ID si besoin
+    tooltipElement.className = 'seek-tooltip hidden'; // Classe CSS + caché par défaut
+    tooltipElement.textContent = '0:00 / 0:00'; // Texte initial
+    overlay.appendChild(tooltipElement); // Ajouter à l'overlay
+    // --- FIN NOUVEAU ---
+
     videoContainer.appendChild(overlay);
-    
-    // Toujours attacher les écouteurs (ils ne fonctionneront que si pointer-events: auto)
-    setupCustomVideoControls(overlay, centerIndicator, progressBar, progressContainer);
-    
-    // Définir l'état initial de l'overlay (passif ou actif)
+
+    // Passer le tooltip à la fonction de configuration
+    setupCustomVideoControls(overlay, centerIndicator, progressBar, progressContainer, tooltipElement); // <-- AJOUTER tooltipElement
+
+    // Définir l'état initial de l'overlay (passif/actif)
     if (isAnnoyingBrowser() && !iosFirstPlayDone) {
-        setOverlayPassiveMode(); // Invisible et non interactif au début sur Annoying Browsers
+        setOverlayPassiveMode();
     } else {
-        setOverlayActiveMode(); // Visible et interactif sinon
+        setOverlayActiveMode();
     }
 
-    console.log("Overlay personnalisé créé/mis à jour.");
+    console.log("Overlay personnalisé créé/mis à jour avec tooltip.");
 }
 
 // Fonction pour mettre à jour la logique de la barre de progression
@@ -1293,78 +1390,205 @@ function stopProgressBarUpdate() {
 
 
 // Fonction pour configurer les contrôles vidéo personnalisés
-function setupCustomVideoControls(overlay, centerIndicator, progressBar, progressContainer) {
-    // Initialiser isPlaying en fonction de l'état ACTUEL du lecteur si disponible
-    let isPlaying = false; 
+function setupCustomVideoControls(overlay, centerIndicator, progressBar, progressContainer, tooltipElement) { // <-- Accepter tooltipElement
+    let isPlaying = false;
     if (youtubePlayer && typeof youtubePlayer.getPlayerState === 'function') {
         const currentState = youtubePlayer.getPlayerState();
-        // Considérer PLAYING et BUFFERING comme des états "en cours de lecture"
         isPlaying = (currentState === YT.PlayerState.PLAYING || currentState === YT.PlayerState.BUFFERING);
     }
-    // Log pour débogage
     console.log(`Initialisation de l'overlay - isPlaying: ${isPlaying}`);
 
     let timeoutId = null;
+    let isSeeking = false;
+    let wasPlayingBeforeSeek = false;
 
-    // Fonction pour afficher momentanément l'indicateur central
+    // --- Helper pour formater le temps en MM:SS ---
+    function formatTime(totalSeconds) {
+        if (isNaN(totalSeconds) || totalSeconds < 0) {
+            return "0:00";
+        }
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
+    // --- Fin Helper ---
+
     function showCenterIndicator(iconType) {
         centerIndicator.innerHTML = `<b>${iconType}</b>`;
         centerIndicator.classList.add('visible');
-
         if (timeoutId) clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
             centerIndicator.classList.remove('visible');
         }, 800);
     }
 
-    // Fonction pour basculer entre lecture et pause
     function togglePlayPause() {
-        if (!youtubePlayer) return;
-
+        if (!youtubePlayer || typeof youtubePlayer.getPlayerState !== 'function') return;
         try {
-            // Lire ou mettre en pause la vidéo selon l'état actuel
-            if (isPlaying) {
+            const state = youtubePlayer.getPlayerState();
+            if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
                 youtubePlayer.pauseVideo();
                 overlay.classList.remove('playing');
-                showCenterIndicator('❚❚'); // Afficher l'icône pause
+                showCenterIndicator('❚❚'); 
+                isPlaying = false; // Mettre à jour l'état local
             } else {
                 youtubePlayer.playVideo();
                 overlay.classList.add('playing');
-                showCenterIndicator('▶'); // Afficher l'icône play
+                showCenterIndicator('▶'); 
+                isPlaying = true; // Mettre à jour l'état local
             }
-
-            // Inverser l'état de lecture
-            isPlaying = !isPlaying;
-
         } catch (e) {
             console.error("Erreur lors du basculement lecture/pause:", e);
         }
     }
-
-    // Écouter les clics sur l'overlay principal pour play/pause
-    overlay.addEventListener('click', function (e) {
-        // Ignorer si le clic est sur les contrôles
-        if (e.target.closest('.custom-video-controls')) return;
-
-        togglePlayPause();
-    });
-
-    // Gérer le clic sur la barre de progression
-    progressContainer.addEventListener('click', function (e) {
-        // Empêcher la propagation du clic à l'overlay principal
-        e.stopPropagation();
-
-        if (!youtubePlayer) return;
-
+    
+    // Fonction pour calculer la position de recherche basée sur l'événement
+    function calculateSeekTime(event) {
         const rect = progressContainer.getBoundingClientRect();
-        const clickPosition = (e.clientX - rect.left) / rect.width;
-        const seekTime = clickPosition * youtubePlayer.getDuration();
+        let clientX;
 
-        youtubePlayer.seekTo(seekTime, true);
+        // Déterminer la coordonnée X correcte selon le type d'événement
+        if (event.type.startsWith('touch')) {
+            // Pour touchmove, utiliser touches[0]
+            // Pour touchend, utiliser changedTouches[0]
+            const touch = event.touches && event.touches.length > 0 
+                        ? event.touches[0] 
+                        : (event.changedTouches && event.changedTouches.length > 0 ? event.changedTouches[0] : null);
+            if (!touch) {
+                console.warn("Impossible de déterminer les coordonnées tactiles.");
+                return NaN; // Retourner NaN si aucune info tactile n'est trouvée
+            }
+            clientX = touch.clientX;
+        } else {
+            // Pour les événements souris (mousedown, mousemove, mouseup)
+            clientX = event.clientX;
+        }
 
-        // Mettre à jour la barre de progression immédiatement
-        const percentage = (seekTime / youtubePlayer.getDuration()) * 100;
+        // Vérifier si clientX est valide
+        if (typeof clientX === 'undefined' || clientX === null) {
+             console.warn("Coordonnée clientX indéfinie ou nulle.");
+             return NaN; 
+        }
+
+        let clickRatio = (clientX - rect.left) / rect.width;
+        clickRatio = Math.max(0, Math.min(1, clickRatio)); // Contraindre entre 0 et 1
+
+        const duration = youtubePlayer.getDuration() || 0;
+        const seekTime = clickRatio * duration;
+
+        // S'assurer qu'on retourne un nombre valide
+        return isNaN(seekTime) ? 0 : seekTime; 
+    }
+
+    // --- NOUVEAU : Fonction pour mettre à jour le tooltip ---
+    function updateSeekTooltip(event) {
+        if (!tooltipElement || !youtubePlayer) return;
+        
+        const seekTime = calculateSeekTime(event);
+        const duration = youtubePlayer.getDuration() || 0;
+        
+        // Mettre à jour le texte du tooltip
+        tooltipElement.textContent = `${formatTime(seekTime)} / ${formatTime(duration)}`;
+
+        // Mettre à jour la position horizontale du tooltip
+        const rect = progressContainer.getBoundingClientRect();
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        let progressRatio = (clientX - rect.left) / rect.width;
+        progressRatio = Math.max(0, Math.min(1, progressRatio)); // Contraindre entre 0 et 1
+        
+        // Calculer la position 'left' en pixels dans le conteneur de la barre
+        const tooltipLeftPx = progressRatio * rect.width;
+        
+        // Appliquer le style (la transformation translateX(-50%) dans le CSS le centrera)
+        tooltipElement.style.left = `${tooltipLeftPx}px`;
+    }
+    // --- FIN NOUVEAU ---
+
+    function updateVisualSeek(event) {
+        if (!isSeeking || !youtubePlayer) return;
+        const seekTime = calculateSeekTime(event);
+        const duration = youtubePlayer.getDuration() || 1;
+        const percentage = (seekTime / duration) * 100;
         progressBar.style.width = `${percentage}%`;
+        
+        updateSeekTooltip(event); // <-- Mettre à jour le tooltip pendant le glisser
+    }
+
+    function startSeek(event) {
+        if (!youtubePlayer || typeof youtubePlayer.seekTo !== 'function') return;
+        event.preventDefault(); 
+        isSeeking = true;
+        const state = youtubePlayer.getPlayerState();
+        wasPlayingBeforeSeek = (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING);
+        stopProgressBarUpdate(); 
+
+        updateVisualSeek(event); // Met à jour barre + tooltip
+        
+        // --- Afficher le tooltip ---
+        if (tooltipElement) {
+            tooltipElement.classList.add('visible');
+        }
+        // --- Fin affichage ---
+
+        document.addEventListener('mousemove', updateVisualSeek);
+        document.addEventListener('touchmove', updateVisualSeek, { passive: false }); 
+        document.addEventListener('mouseup', endSeek);
+        document.addEventListener('touchend', endSeek);
+        console.log("Début du seek");
+    }
+
+    // Dans setupCustomVideoControls
+
+    // Fonction pour terminer le glisser/chercher
+    function endSeek(event) {
+        if (!isSeeking || !youtubePlayer) return;
+        
+        // Sauvegarder l'état isSeeking *avant* de retirer les listeners, 
+        // au cas où l'event se déclenche à nouveau rapidement.
+        const wasSeeking = isSeeking; 
+        isSeeking = false; 
+        
+        // Cacher le tooltip
+        if (tooltipElement) {
+             tooltipElement.classList.remove('visible');
+        }
+        
+        // Retirer les listeners du document
+        document.removeEventListener('mousemove', updateVisualSeek);
+        document.removeEventListener('touchmove', updateVisualSeek);
+        document.removeEventListener('mouseup', endSeek);
+        document.removeEventListener('touchend', endSeek);
+        
+        // Seulement si on était bien en train de chercher
+        if (wasSeeking) {
+            const finalSeekTime = calculateSeekTime(event);
+    
+            // Vérifier que le temps est valide avant de seek
+            if (!isNaN(finalSeekTime)) {
+                console.log(`Fin du seek - Temps demandé: ${finalSeekTime.toFixed(2)}s`);
+                youtubePlayer.seekTo(finalSeekTime, true); // Demande le seek
+            
+                // Met à jour la barre visuellement à la position demandée
+                const duration = youtubePlayer.getDuration() || 1;
+                const percentage = (finalSeekTime / duration) * 100;
+                progressBar.style.width = `${percentage}%`; 
+            } else {
+                 console.error("Impossible de calculer le temps final pour seekTo.");
+                 // Optionnel : forcer une mise à jour de la barre à la position actuelle réelle ?
+                 // updateProgressBarLogic(); // Pourrait aider à resynchroniser visuellement en cas d'erreur
+            }
+        }
+        
+        // Laisser onPlayerStateChange gérer le redémarrage de la barre auto
+    }
+
+    // --- Attacher les listeners ---
+    progressContainer.addEventListener('mousedown', startSeek);
+    progressContainer.addEventListener('touchstart', startSeek, { passive: false }); 
+
+    overlay.addEventListener('click', function (e) {
+        if (e.target.closest('.custom-video-controls')) return;
+        togglePlayPause();
     });
 }
 
@@ -1440,20 +1664,156 @@ function onPlayerStateChange(event) {
     }
 }
 
+// Variable pour stocker l'ID de l'intervalle du timer
+let endScreenTimerInterval = null;
+
 // Fonction pour effectuer des actions après la fin de la vidéo
 function actionsAfterVideoEnded() {
-// Cacher la vidéo et afficher le bouton "Rejouer"
-    batchDOMUpdates(() => {
-        if (domElements.videoContainer) {
-            domElements.videoContainer.style.display = 'none'; // Cacher conteneur vidéo
-            domElements.videoContainer.classList.remove('visible'); // Retirer classe visible
-        }
-        if (domElements.replayButton) {
-            domElements.replayButton.classList.remove('hidden'); // Afficher bouton Rejouer
-        }
-    });
+    console.log("Vidéo terminée, affichage de l'écran de fin.");
+    stopProgressBarUpdate(); // Arrêter la barre de progression
+
+    if (!domElements.endScreenContainer || !domElements.endScreenTitle || !domElements.endScreenButtons || !domElements.buyButton || !domElements.downloadButton || !currentProduction) {
+        console.error("Éléments DOM manquants pour l'écran de fin ou production non définie.");
+        // Fallback: réinitialiser simplement le jeu
+        initializeGame();
+        return;
+    }
+    
+    // Arrêter tout timer existant pour éviter les doublons
+    if (endScreenTimerInterval) {
+        clearInterval(endScreenTimerInterval);
+        endScreenTimerInterval = null;
+    }
+    
+    // Cacher le conteneur vidéo (il devrait déjà l'être par le CSS mais on assure)
+    if (domElements.videoContainer) {
+        domElements.videoContainer.style.display = 'none';
+        domElements.videoContainer.classList.remove('visible');
+    }
+    // Cacher l'ancien bouton rejouer (flèche) s'il existe encore
+    const oldReplayButton = document.getElementById('replay-button');
+    if (oldReplayButton) {
+        oldReplayButton.classList.add('hidden');
+    }
+
+    // Mettre à jour le titre sur l'écran de fin
+    domElements.endScreenTitle.textContent = currentProduction.title;
+
+    // Réinitialiser les styles du bouton de téléchargement pour l'écran de fin
+    // Ceci est nécessaire car le style peut avoir été modifié ailleurs
+    domElements.downloadButton.style.opacity = '1';
+    domElements.downloadButton.style.visibility = 'visible';
+    domElements.downloadButton.style.pointerEvents = 'auto';
+    domElements.downloadButton.style.display = 'flex';
+    domElements.downloadButton.style.position = 'static';
+    domElements.downloadButton.style.transform = 'none';
+    domElements.downloadButton.style.left = 'auto';
+    domElements.downloadButton.style.right = 'auto';
+    domElements.downloadButton.style.top = 'auto';
+    domElements.downloadButton.style.clipPath = 'none';
+
+    // Mettre à jour le texte du bouton de téléchargement
+    const downloadButtonText = domElements.downloadButton.querySelector('span');
+    if (downloadButtonText) {
+        downloadButtonText.textContent = 'TÉLÉCHARGEMENT DIRECT';
+    }
+
+    // Mettre à jour le texte du bouton d'achat en "INFORMATIONS"
+    const buyButtonText = domElements.buyButton.querySelector('span');
+    if (buyButtonText) {
+        buyButtonText.textContent = 'INFORMATIONS';
+    }
+
+    // Réinitialiser les styles du bouton d'informations (ancien bouton d'achat)
+    domElements.buyButton.style.opacity = '1';
+    domElements.buyButton.style.visibility = 'visible';
+    domElements.buyButton.style.pointerEvents = 'auto';
+    domElements.buyButton.style.display = 'flex';
+    domElements.buyButton.style.position = 'static';
+    domElements.buyButton.style.transform = 'none';
+    domElements.buyButton.style.animation = 'none';
+
+    // S'assurer que l'animation est appliquée
+    domElements.downloadButton.style.animation = 'downloadButtonPulse 2s infinite alternate ease-in-out';
+
+    // Déplacer les boutons Acheter et Télécharger dans le conteneur de l'écran de fin
+    domElements.endScreenButtons.innerHTML = ''; // Vider d'abord pour éviter les doublons
+    domElements.endScreenButtons.appendChild(domElements.downloadButton);
+    domElements.endScreenButtons.appendChild(domElements.buyButton);
+
+    // Initialiser le timer
+    initEndScreenTimer();
+
+    // Afficher le conteneur de l'écran de fin
+    domElements.endScreenContainer.classList.add('visible');
+
+    // Ajouter l'écouteur pour rejouer au clic sur le fond
+    // Utiliser une fonction nommée pour pouvoir la retirer facilement
+    domElements.endScreenContainer.addEventListener('click', handleEndScreenClick);
 }
 
+// Fonction pour initialiser et démarrer le timer de l'écran de fin
+function initEndScreenTimer() {
+    const timerElement = document.getElementById('end-screen-timer');
+    if (!timerElement) return;
+    
+    let timeLeft = 15; // Temps initial en secondes (modifié à 15)
+    timerElement.textContent = timeLeft;
+    timerElement.classList.remove('urgent');
+    
+    // Démarrer le compte à rebours
+    endScreenTimerInterval = setInterval(() => {
+        timeLeft--;
+        
+        // Mettre à jour l'affichage
+        timerElement.textContent = timeLeft;
+        
+        // Ajouter la classe 'urgent' si moins de 3 secondes restantes
+        if (timeLeft <= 5) {
+            timerElement.classList.add('urgent');
+        }
+        
+        // Quand le timer atteint 0, fermer l'écran et réinitialiser le jeu
+        if (timeLeft <= 0) {
+            clearInterval(endScreenTimerInterval);
+            endScreenTimerInterval = null;
+            
+            // Fermer l'écran de fin et réinitialiser
+            if (domElements.endScreenContainer) {
+                domElements.endScreenContainer.classList.remove('visible');
+                domElements.endScreenContainer.removeEventListener('click', handleEndScreenClick);
+            }
+            
+            // Réinitialiser le jeu
+            initializeGame();
+        }
+    }, 1000);
+}
+
+// Fonction pour gérer le clic sur l'écran de fin (pour rejouer)
+function handleEndScreenClick(event) {
+    // Vérifier si le clic provient DIRECTEMENT du conteneur ou de son contenu direct
+    // et NON des boutons déplacés (ou de leurs enfants <img>, <span>)
+    if (!event.target.closest('.buy-button') && !event.target.closest('.download-button')) {
+        console.log("Clic sur fond écran de fin, réinitialisation...");
+        
+        // Arrêter le timer
+        if (endScreenTimerInterval) {
+            clearInterval(endScreenTimerInterval);
+            endScreenTimerInterval = null;
+        }
+        
+        // Cacher l'écran de fin immédiatement
+        if (domElements.endScreenContainer) {
+            domElements.endScreenContainer.classList.remove('visible');
+             // Retirer l'écouteur pour éviter les appels multiples
+            domElements.endScreenContainer.removeEventListener('click', handleEndScreenClick);
+        }
+       
+        // Lancer la réinitialisation (qui remettra les boutons à leur place)
+        initializeGame();
+    }
+}
 
 // Fonction pour effectuer des mises à jour DOM groupées
 function batchDOMUpdates(updateFunction) {
