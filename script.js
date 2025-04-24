@@ -2042,7 +2042,7 @@ function updateTextPositions() {
 
     // Position du texte du bas
     const bottomTextElement = document.querySelector('.bottom-text');
-    const bottomTextTopReference = 900; // proche du bas en 1080p
+    const bottomTextTopReference = 845; // proche du bas en 1080p
     bottomTextElement.style.position = 'fixed';
     bottomTextElement.style.top = `${marginVertical + (bottomTextTopReference * scaleRatio)}px`;
     bottomTextElement.style.bottom = 'auto';
