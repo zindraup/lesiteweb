@@ -246,6 +246,159 @@ function updateDecorativeCards() {
     });
 }
 
+// --- SECTIONS DES INSTRUS (timecodes des descriptions YouTube) ---
+// sections.json : { "<videoId>": { "duration": 179, "sections": [{ "start": 0, "label": "INTRO" }, ...] } }
+let sectionsData = {};
+let renderedSectionsKey = null;
+let currentSectionIndex = -1;
+
+fetch('sections.json')
+    .then(response => response.ok ? response.json() : {})
+    .then(data => {
+        sectionsData = data || {};
+        renderSectionMarkers();
+    })
+    .catch(error => console.warn("Sections indisponibles :", error));
+
+function getCurrentSections() {
+    const id = currentProduction && currentProduction.id;
+    const entry = id ? sectionsData[id] : null;
+    return entry && Array.isArray(entry.sections) && entry.sections.length ? entry : null;
+}
+
+function getSectionIndexAt(entry, time) {
+    let index = -1;
+    for (let i = 0; i < entry.sections.length; i++) {
+        if (entry.sections[i].start <= time + 0.05) index = i;
+        else break;
+    }
+    return index;
+}
+
+function getSectionLabelAt(time) {
+    const entry = getCurrentSections();
+    if (!entry) return '';
+    const index = getSectionIndexAt(entry, time);
+    return index >= 0 ? entry.sections[index].label : '';
+}
+
+// Place les séparateurs de sections sur la barre de progression
+function renderSectionMarkers() {
+    const track = document.querySelector('.progress-track');
+    if (!track) return;
+    const entry = getCurrentSections();
+    let duration = 0;
+    try {
+        duration = (youtubePlayer && typeof youtubePlayer.getDuration === 'function' && youtubePlayer.getDuration()) || 0;
+    } catch (e) { duration = 0; }
+    if (!duration && entry) duration = entry.duration || 0;
+    const key = entry && duration ? `${currentProduction.id}:${Math.round(duration)}` : null;
+    if (key === renderedSectionsKey) return;
+
+    renderedSectionsKey = key;
+    updateSectionInfoAvailability();
+    track.querySelectorAll('.section-marker').forEach(marker => marker.remove());
+    if (!key) return;
+
+    const fragment = document.createDocumentFragment();
+    entry.sections.forEach(section => {
+        if (section.start <= 0 || section.start >= duration) return;
+        const marker = document.createElement('div');
+        marker.className = 'section-marker';
+        marker.style.left = `${(section.start / duration) * 100}%`;
+        fragment.appendChild(marker);
+    });
+    track.appendChild(fragment);
+}
+
+// Les refrains (pas les pré-refrains)
+function isChorusLabel(label) {
+    return /^(REPRISE )?REFRAIN/.test(label);
+}
+
+// Bandeau placé juste sous la vidéo (en dehors de l'image)
+function createSectionInfo(videoContainer) {
+    if (videoContainer.querySelector('.section-info')) return;
+    const info = document.createElement('div');
+    info.className = 'section-info';
+
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    info.appendChild(label);
+
+    const skip = document.createElement('button');
+    skip.type = 'button';
+    skip.className = 'section-skip';
+    skip.textContent = 'SAUTER AU REFRAIN ›';
+    skip.title = 'Reprendre une mesure avant le prochain refrain';
+    skip.addEventListener('click', (event) => {
+        event.stopPropagation();
+        skipToBeforeChorus();
+    });
+    info.appendChild(skip);
+
+    videoContainer.appendChild(info);
+}
+
+// Met à jour le bandeau pour la prod en cours (présence de sections / de refrain)
+function updateSectionInfoAvailability() {
+    const info = document.querySelector('.section-info');
+    if (!info) return;
+    const entry = getCurrentSections();
+    info.classList.toggle('has-sections', !!entry);
+    const skip = info.querySelector('.section-skip');
+    if (skip) skip.classList.toggle('available', !!entry && entry.sections.some(s => isChorusLabel(s.label)));
+}
+
+// Saute une mesure (4 temps, calculée avec le BPM) avant le prochain refrain
+function skipToBeforeChorus() {
+    const entry = getCurrentSections();
+    if (!entry || !youtubePlayer || typeof youtubePlayer.seekTo !== 'function') return;
+    const choruses = entry.sections.filter(s => isChorusLabel(s.label));
+    if (!choruses.length) return;
+
+    const bpm = Number(currentProduction && currentProduction.bpm) || 0;
+    const barDuration = bpm > 0 ? 240 / bpm : 2; // 1 mesure en 4/4 = 4 temps de 60/bpm s
+    let now = 0;
+    try { now = youtubePlayer.getCurrentTime() || 0; } catch (e) { now = 0; }
+
+    const targets = choruses.map(c => Math.max(0, c.start - barDuration));
+    // Prochain refrain devant nous ; après le dernier, on revient au premier
+    let target = targets.find(t => t > now + 0.5);
+    if (target === undefined) target = targets[0];
+
+    youtubePlayer.seekTo(target, true);
+    try {
+        const state = youtubePlayer.getPlayerState();
+        if (state !== YT.PlayerState.PLAYING && state !== YT.PlayerState.BUFFERING) youtubePlayer.playVideo();
+        const duration = youtubePlayer.getDuration() || entry.duration || 0;
+        if (duration > 0) setProgressBar(document.querySelector('.progress-bar'), (target / duration) * 100);
+    } catch (e) { /* lecteur pas prêt */ }
+    updateSectionLabel(target);
+}
+
+// Affiche le nom de la section en cours sous la vidéo (ne touche au DOM qu'au changement)
+function updateSectionLabel(time) {
+    const label = document.querySelector('.section-label');
+    if (!label) return;
+    const entry = getCurrentSections();
+    const index = entry ? getSectionIndexAt(entry, time) : -1;
+    if (index === currentSectionIndex) return;
+    currentSectionIndex = index;
+    if (index < 0) {
+        label.classList.remove('visible');
+        return;
+    }
+    label.textContent = entry.sections[index].label;
+    label.classList.add('visible');
+    if (typeof label.animate === 'function') {
+        label.animate(
+            [{ opacity: 0, transform: 'translateY(-3px)' }, { opacity: 1, transform: 'none' }],
+            { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+        );
+    }
+}
+
 // Charger le fichier JSON avec la liste des productions
 fetch('prods.json')
     .then(response => response.json())
@@ -1446,6 +1599,20 @@ function createCustomYouTubeOverlay() {
 
     videoContainer.appendChild(overlay);
 
+    // Bandeau sous la vidéo : section en cours + saut avant le refrain
+    createSectionInfo(videoContainer);
+
+    // Nouvel overlay : sections à replacer
+    renderedSectionsKey = null;
+    currentSectionIndex = -1;
+    const sectionLabelElement = videoContainer.querySelector('.section-label');
+    if (sectionLabelElement) {
+        sectionLabelElement.textContent = '';
+        sectionLabelElement.classList.remove('visible');
+    }
+    updateSectionInfoAvailability();
+    renderSectionMarkers();
+
     // Passer le tooltip à la fonction de configuration
     setupCustomVideoControls(overlay, centerIndicator, progressBar, progressContainer, tooltipElement); // <-- AJOUTER tooltipElement
 
@@ -1485,6 +1652,8 @@ function updateProgressBarLogic() {
             if(duration > 0) {
                  const percentage = Math.min(100, (currentTime / duration) * 100); // Limiter à 100%
                  setProgressBar(progressBar, percentage);
+                 renderSectionMarkers();
+                 updateSectionLabel(currentTime);
             } else {
                  setProgressBar(progressBar, 0); // Durée non valide, reset
             }
@@ -1618,20 +1787,20 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
         const seekTime = calculateSeekTime(event);
         const duration = youtubePlayer.getDuration() || 0;
         
-        // Mettre à jour le texte du tooltip
-        tooltipElement.textContent = `${formatTime(seekTime)} / ${formatTime(duration)}`;
+        // Mettre à jour le texte du tooltip (avec la section visée)
+        const sectionName = getSectionLabelAt(seekTime);
+        tooltipElement.textContent = `${formatTime(seekTime)} / ${formatTime(duration)}${sectionName ? ' · ' + sectionName : ''}`;
 
         // Mettre à jour la position horizontale du tooltip
         const rect = progressContainer.getBoundingClientRect();
-        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-        let progressRatio = (clientX - rect.left) / rect.width;
-        progressRatio = Math.max(0, Math.min(1, progressRatio)); // Contraindre entre 0 et 1
-        
-        // Calculer la position 'left' en pixels dans le conteneur de la barre
-        const tooltipLeftPx = progressRatio * rect.width;
-        
-        // Appliquer le style (la transformation translateX(-50%) dans le CSS le centrera)
-        tooltipElement.style.left = `${tooltipLeftPx}px`;
+        const overlayRect = overlay.getBoundingClientRect();
+        const touch = event.touches && event.touches.length ? event.touches[0]
+                    : (event.changedTouches && event.changedTouches.length ? event.changedTouches[0] : null);
+        const clientX = touch ? touch.clientX : event.clientX;
+        const clampedX = Math.max(rect.left, Math.min(rect.right, clientX));
+
+        // Le tooltip est positionné dans l'overlay (la translateX(-50%) du CSS le centre)
+        tooltipElement.style.left = `${clampedX - overlayRect.left}px`;
     }
     // --- FIN NOUVEAU ---
 
@@ -1700,11 +1869,12 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
             if (!isNaN(finalSeekTime)) {
                 console.log(`Fin du seek - Temps demandé: ${finalSeekTime.toFixed(2)}s`);
                 youtubePlayer.seekTo(finalSeekTime, true); // Demande le seek
-            
+
                 // Met à jour la barre visuellement à la position demandée
                 const duration = youtubePlayer.getDuration() || 1;
                 const percentage = (finalSeekTime / duration) * 100;
-                setProgressBar(progressBar, percentage); 
+                setProgressBar(progressBar, percentage);
+                updateSectionLabel(finalSeekTime);
             } else {
                  console.error("Impossible de calculer le temps final pour seekTo.");
                  // Optionnel : forcer une mise à jour de la barre à la position actuelle réelle ?
@@ -1714,6 +1884,16 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
         
         // Laisser onPlayerStateChange gérer le redémarrage de la barre auto
     }
+
+    // --- Tooltip au survol de la barre (temps + section) ---
+    progressContainer.addEventListener('mousemove', (event) => {
+        if (isSeeking || !youtubePlayer || typeof youtubePlayer.getDuration !== 'function') return;
+        updateSeekTooltip(event);
+        tooltipElement.classList.add('visible');
+    });
+    progressContainer.addEventListener('mouseleave', () => {
+        if (!isSeeking) tooltipElement.classList.remove('visible');
+    });
 
     // --- Attacher les listeners ---
     progressContainer.addEventListener('mousedown', startSeek);
@@ -2730,6 +2910,7 @@ function updateGlobalCSSVariables() {
         baseHeight = 336; // hauteur de référence des cartes
         selectedScale = 1.2; // facteur d'agrandissement pour les cartes sélectionnées
         descendDistance = baseHeight * scaleRatio * selectedScale * 0.75; // Réduit de 0.85 à 0.75
+        descendDistance += 70 * scaleRatio; // Place pour le bandeau des sections sous les boutons
     } else {
         // Valeurs pour le mode paysage
         baseHeight = 336; // hauteur de référence des cartes
@@ -2885,7 +3066,7 @@ function updateTextPositionsVertical() {
     // Position du texte de redémarrage si visible
     const restartTextElement = document.querySelector('.restart-text');
     if (restartTextElement) {
-        const restartTextTopReference = 1560;
+        const restartTextTopReference = 1630; // 1560 + place pour le bandeau des sections
         restartTextElement.style.position = 'fixed';
         restartTextElement.style.top = `${marginVertical + (restartTextTopReference * scaleRatio)}px`;
         restartTextElement.style.bottom = 'auto';

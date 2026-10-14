@@ -1307,3 +1307,93 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text {
         padding: 3px 15px !important;
     }
 }
+/* --- Sections des instrus (timecodes YouTube) --- */
+.video-container {
+    container-type: size; /* unités cqw : le texte suit la taille de la vidéo */
+}
+
+/* Séparateurs de sections sur la barre de progression */
+.section-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    pointer-events: none;
+}
+
+/* Bandeau sous la vidéo : section en cours + saut avant le refrain */
+.section-info {
+    position: absolute;
+    left: calc(-1 * var(--video-border-width));
+    right: calc(-1 * var(--video-border-width));
+    top: calc(100% + var(--video-border-width) + 6px);
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: 'SAINT-DROP', 'Impact', 'Arial Black', sans-serif;
+    font-size: 11px;
+    font-size: clamp(8px, 1.7cqw, 14px);
+    letter-spacing: 1px;
+    line-height: 1;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+
+.video-container.visible .section-info.has-sections {
+    display: flex;
+}
+
+.section-label {
+    color: #ffcc00;
+    text-shadow: 0 0 8px rgba(255, 204, 0, 0.3);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.section-label::before {
+    content: '♪ ';
+    opacity: 0.7;
+}
+
+.section-label.visible {
+    opacity: 1;
+}
+
+.section-skip {
+    display: none;
+    margin-left: auto;
+    padding: 0.45em 0.9em 0.35em;
+    font: inherit;
+    letter-spacing: inherit;
+    color: #ffcc00;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 204, 0, 0.8);
+    border-radius: 999px;
+    cursor: pointer;
+    pointer-events: auto;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.section-skip.available {
+    display: inline-block;
+}
+
+.section-skip:hover {
+    background: #ffcc00;
+    color: #000;
+}
+
+.section-skip:active {
+    transform: scale(0.95);
+}
+
+/* Format vertical : les boutons Télécharger/Acheter sont sous la vidéo, le bandeau passe en dessous d'eux */
+.vertical-layout .section-info {
+    top: calc(100% + var(--video-border-width) + 13.5cqw + 8px);
+    font-size: clamp(9px, 2.6cqw, 14px);
+}
