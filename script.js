@@ -98,8 +98,10 @@ function loadYouTubeAPI() {
         console.log("API YouTube déjà chargée");
         return Promise.resolve();
     }
+    // Chargement déjà en cours : réutiliser la même promesse (un seul script)
+    if (loadYouTubeAPI.pending) return loadYouTubeAPI.pending;
 
-    return new Promise((resolve) => {
+    return loadYouTubeAPI.pending = new Promise((resolve) => {
         console.log("Chargement de l'API YouTube...");
         // Créer la balise script pour l'API YouTube
         const tag = document.createElement('script');
@@ -330,7 +332,7 @@ function createSectionInfo(videoContainer) {
     skip.type = 'button';
     skip.className = 'section-skip';
     skip.textContent = 'SAUTER AU REFRAIN ›';
-    skip.title = 'Reprendre une mesure avant le prochain refrain';
+    skip.title = 'Reprendre 2 mesures avant le prochain refrain';
     skip.addEventListener('click', (event) => {
         event.stopPropagation();
         skipToBeforeChorus();
@@ -350,19 +352,30 @@ function updateSectionInfoAvailability() {
     if (skip) skip.classList.toggle('available', !!entry && entry.sections.some(s => isChorusLabel(s.label)));
 }
 
-// Saute une mesure (4 temps, calculée avec le BPM) avant le prochain refrain
+// Nombre de mesures (4/4) avant le refrain où l'on reprend la lecture
+const BARS_BEFORE_CHORUS = 2;
+
+// Points de reprise : 2 mesures (calculées avec le BPM) avant chaque refrain
+function getChorusLeadInTimes(videoId, bpmValue) {
+    const entry = videoId ? sectionsData[videoId] : null;
+    if (!entry || !Array.isArray(entry.sections)) return [];
+    const bpm = Number(bpmValue) || 0;
+    const barDuration = bpm > 0 ? 240 / bpm : 2; // 1 mesure en 4/4 = 4 temps de 60/bpm s
+    return entry.sections
+        .filter(s => isChorusLabel(s.label))
+        .map(c => Math.max(0, c.start - BARS_BEFORE_CHORUS * barDuration));
+}
+
+// Saute 2 mesures avant le prochain refrain
 function skipToBeforeChorus() {
     const entry = getCurrentSections();
     if (!entry || !youtubePlayer || typeof youtubePlayer.seekTo !== 'function') return;
-    const choruses = entry.sections.filter(s => isChorusLabel(s.label));
-    if (!choruses.length) return;
+    const targets = getChorusLeadInTimes(currentProduction.id, currentProduction.bpm);
+    if (!targets.length) return;
 
-    const bpm = Number(currentProduction && currentProduction.bpm) || 0;
-    const barDuration = bpm > 0 ? 240 / bpm : 2; // 1 mesure en 4/4 = 4 temps de 60/bpm s
     let now = 0;
     try { now = youtubePlayer.getCurrentTime() || 0; } catch (e) { now = 0; }
 
-    const targets = choruses.map(c => Math.max(0, c.start - barDuration));
     // Prochain refrain devant nous ; après le dernier, on revient au premier
     let target = targets.find(t => t > now + 0.5);
     if (target === undefined) target = targets[0];
@@ -375,6 +388,29 @@ function skipToBeforeChorus() {
         if (duration > 0) setProgressBar(document.querySelector('.progress-bar'), (target / duration) * 100);
     } catch (e) { /* lecteur pas prêt */ }
     updateSectionLabel(target);
+}
+
+// --- Option « lancer la prod 2 mesures avant le refrain » (mémorisée dans le navigateur) ---
+const AUTOSTART_STORAGE_KEY = 'dtm-autostart-refrain';
+let autoStartAtChorus = false;
+try { autoStartAtChorus = localStorage.getItem(AUTOSTART_STORAGE_KEY) === '1'; } catch (e) { /* stockage indisponible */ }
+
+function setupAutoStartToggle() {
+    const checkbox = document.getElementById('autostart-refrain');
+    if (!checkbox) return;
+    checkbox.checked = autoStartAtChorus;
+    checkbox.addEventListener('change', () => {
+        autoStartAtChorus = checkbox.checked;
+        try { localStorage.setItem(AUTOSTART_STORAGE_KEY, autoStartAtChorus ? '1' : '0'); } catch (e) { /* ignoré */ }
+    });
+}
+document.addEventListener('DOMContentLoaded', setupAutoStartToggle);
+
+// Seconde de départ d'une prod (0 si l'option est décochée ou sans refrain connu)
+function getAutoStartTime(videoId) {
+    if (!autoStartAtChorus || !currentProduction || currentProduction.id !== videoId) return 0;
+    const targets = getChorusLeadInTimes(videoId, currentProduction.bpm);
+    return targets.length ? targets[0] : 0;
 }
 
 // Affiche le nom de la section en cours sous la vidéo (ne touche au DOM qu'au changement)
@@ -529,6 +565,8 @@ function resetUI() {
     videoLoadingCancelled = true;
     disarmPlaybackWatchdog();
     isRecoveringPlayer = false;
+    revealPending = false;
+    preloadHold = false;
     batchDOMUpdates(() => {
         // Cacher conteneur vidéo
          if (domElements.videoContainer) {
@@ -771,8 +809,11 @@ class AnimationSequence {
         console.log("Animations terminées, tentative de lecture de la vidéo préchargée.");
         isPreloadingVideo = false; // Fin du préchargement
 
-        // Essayer de lancer la lecture si le lecteur est prêt ET SI ce n'est pas le premier play sur iOS
-        if (youtubePlayer && typeof youtubePlayer.playVideo === 'function' && !(isAnnoyingBrowser() && !iosFirstPlayDone)) {
+        if (canPreloadMuted()) {
+            // Vidéo préchargée en sourdine pendant l'animation : retour au point de départ + son
+            revealPreloadedPlayback();
+            armPlaybackWatchdog();
+        } else if (youtubePlayer && typeof youtubePlayer.playVideo === 'function' && !(isAnnoyingBrowser() && !iosFirstPlayDone)) {
             // Vérifier si le lecteur est dans un état où playVideo est pertinent (UNSTARTED, CUED, PAUSED)
             const currentState = youtubePlayer.getPlayerState();
             if (currentState === YT.PlayerState.UNSTARTED || currentState === YT.PlayerState.CUED || currentState === YT.PlayerState.PAUSED) {
@@ -983,8 +1024,9 @@ async function initializeGame() {
         domElements.buyButton.style.animation = 'none';
     }
 
-    // Charger l'API YouTube
+    // Charger l'API YouTube et préparer le lecteur à l'avance
     loadYouTubeAPI();
+    warmUpYouTubePlayer();
 
     // Empêcher les clics pendant la réinitialisation
     isAnimating = true;
@@ -1353,13 +1395,17 @@ async function loadYouTubeVideo(videoId) {
         }
 
         // Si un lecteur existe déjà, le réutiliser pour charger la nouvelle vidéo
+        if (youtubePlayer && !playerReady) {
+            // Lecteur créé à l'avance mais pas encore prêt : onPlayerReady chargera la vidéo
+            pendingPreloadVideoId = videoId;
+            isLoadingVideo = false;
+            return;
+        }
         if (youtubePlayer && typeof youtubePlayer.loadVideoById === 'function') {
             console.log("Réutilisation du lecteur YouTube existant pour charger la vidéo:", videoId);
-            stopProgressBarUpdate();
-            // Charger la nouvelle vidéo. La lecture sera gérée par onPlayerStateChange.
-            // cueVideoById prépare la vidéo sans la lancer (évite la course load + pause
-            // qui pouvait laisser le lecteur bloqué) ; descendCard lance la lecture.
-            youtubePlayer.cueVideoById(videoId);
+            // Préchargement : la vidéo se charge en sourdine pendant l'animation de la carte,
+            // se met en pause sur son point de départ, et descendCard la révèle avec le son
+            preloadVideoInPlayer(videoId);
             // Mettre à jour l'état ici car onReady ne sera pas appelé
             isLoadingVideo = false; 
             console.log("Nouvelle vidéo préparée dans le lecteur existant.");
@@ -1432,6 +1478,8 @@ function armPlaybackWatchdog() {
 
 function destroyYouTubePlayer() {
     stopProgressBarUpdate();
+    playerReady = false;
+    pendingPreloadVideoId = null;
     if (youtubePlayer && typeof youtubePlayer.destroy === 'function') {
         try { youtubePlayer.destroy(); } catch (e) { console.error("Erreur destruction lecteur:", e); }
     }
@@ -1463,17 +1511,154 @@ function recoverYouTubePlayer() {
     useNoCookieHost = !useNoCookieHost;
     destroyYouTubePlayer();
     isRecoveringPlayer = true;
+    if (canPreloadMuted()) revealPending = true; // onPlayerReady remettra le son
     createYouTubePlayer(currentProduction.id, true);
     armPlaybackWatchdog();
 }
 
+// --- Préchargement silencieux de la vidéo pendant l'animation du tirage ---
+let preloadStartTime = 0;   // point de départ de la prod (0 ou 2 mesures avant le refrain)
+let revealPending = false;  // carte révélée avant que le lecteur soit prêt
+let preloadHold = false;    // mettre en pause dès que la vidéo préchargée est prête
+let playerReady = false;    // le lecteur YouTube a déclenché onReady
+let pendingPreloadVideoId = null; // vidéo demandée avant que le lecteur soit prêt
+
+// Lecteur créé à l'avance (invisible) pour que le 1er tirage démarre aussi vite que les suivants
+function warmUpYouTubePlayer() {
+    if (youtubePlayer || !canPreloadMuted()) return;
+    loadYouTubeAPI().then(() => {
+        if (youtubePlayer) return;
+        // YouTube n'initialise pas un lecteur sans vidéo : on prépare (sans lire) une vidéo du catalogue
+        const firstVideoId = Object.keys(sectionsData)[0] || 'NRpXh4YDWXI';
+        createYouTubePlayer(firstVideoId, false, false);
+    });
+}
+
+// Charge une vidéo dans le lecteur existant (en sourdine, mise en pause dès qu'elle est prête)
+function preloadVideoInPlayer(videoId) {
+    stopProgressBarUpdate();
+    preloadStartTime = getAutoStartTime(videoId);
+    if (canPreloadMuted()) {
+        youtubePlayer.mute();
+        preloadHold = true;
+        youtubePlayer.loadVideoById({ videoId: videoId, startSeconds: preloadStartTime });
+    } else {
+        youtubePlayer.cueVideoById({ videoId: videoId, startSeconds: preloadStartTime });
+    }
+}
+
+// iOS / navigateurs intégrés exigent un clic sur la vidéo pour le son : pas de préchargement muet
+function canPreloadMuted() {
+    return !isAnnoyingBrowser();
+}
+
+// Au moment où la vidéo apparaît : retour au point de départ, son rétabli, lecture
+function revealPreloadedPlayback() {
+    if (!youtubePlayer || typeof youtubePlayer.seekTo !== 'function' || !playerReady) {
+        revealPending = true; // onPlayerReady s'en chargera
+        return;
+    }
+    revealPending = false;
+    if (isPreloadReady()) {
+        startPreloadedPlayback();
+        return;
+    }
+    // Préchargement encore en cours : on le laisse finir (le relancer ferait tout recharger),
+    // le son est rétabli et la vidéo démarrera d'elle-même dès qu'elle est prête.
+    // Si YouTube reste bloqué, chargement normal avec le son.
+    preloadHold = false;
+    // YouTube peut refuser de démarrer une vidéo invisible et rester « non démarré » :
+    // maintenant qu'elle est affichée, on relance explicitement la lecture.
+    const nudgePlayback = () => {
+        try {
+            const state = youtubePlayer.getPlayerState();
+            if (state === YT.PlayerState.UNSTARTED || state === YT.PlayerState.CUED) youtubePlayer.playVideo();
+        } catch (e) { /* ignoré */ }
+    };
+    try { youtubePlayer.unMute(); } catch (e) { /* ignoré */ }
+    nudgePlayback();
+    const videoId = currentProduction && currentProduction.id;
+    let waited = 0;
+    const poll = bgSetInterval(() => {
+        waited += 50;
+        if (waited % 500 === 0) nudgePlayback();
+        if (videoLoadingCancelled || !currentProduction || currentProduction.id !== videoId) {
+            bgClearInterval(poll);
+            return;
+        }
+        let state = null;
+        try { state = youtubePlayer.getPlayerState(); } catch (e) { state = null; }
+        if (state === YT.PlayerState.PLAYING) {
+            bgClearInterval(poll);
+            // Démarrée pendant l'attente : s'assurer qu'elle est au bon endroit et a le son
+            try {
+                if (youtubePlayer.isMuted()) youtubePlayer.unMute();
+                if (Math.abs((youtubePlayer.getCurrentTime() || 0) - preloadStartTime) > 1.5) {
+                    youtubePlayer.seekTo(preloadStartTime, true);
+                }
+            } catch (e) { /* ignoré */ }
+        } else if (state === YT.PlayerState.PAUSED) {
+            bgClearInterval(poll);
+            startPreloadedPlayback();
+        } else if (waited >= PRELOAD_GRACE_MS ||
+                   (waited >= STALL_REBUILD_MS && state !== YT.PlayerState.BUFFERING)) {
+            // YouTube a abandonné le chargement (revenu à « non démarré ») ou charge
+            // indéfiniment : seul un lecteur neuf repart de façon fiable
+            bgClearInterval(poll);
+            rebuildPlayerWithSound();
+        }
+    }, 50);
+}
+
+const PRELOAD_GRACE_MS = 3000; // chargement qui n'aboutit pas : lecteur recréé
+const STALL_REBUILD_MS = 1200; // vidéo revenue à « non démarré » malgré les relances
+
+// Recrée le lecteur pour la prod en cours, lecture directe avec le son
+// (en alternant youtube.com / youtube-nocookie.com pour obtenir un processus neuf)
+function rebuildPlayerWithSound() {
+    if (!currentProduction || videoLoadingCancelled) return;
+    console.warn("Vidéo YouTube bloquée : recréation du lecteur.");
+    useNoCookieHost = !useNoCookieHost;
+    destroyYouTubePlayer();
+    revealPending = false;
+    createYouTubePlayer(currentProduction.id, true, false, false);
+    armPlaybackWatchdog();
+}
+
+// La vidéo préchargée est calée (en pause sur son départ, ou déjà en lecture)
+function isPreloadReady() {
+    try {
+        const state = youtubePlayer.getPlayerState();
+        return state === YT.PlayerState.PAUSED || state === YT.PlayerState.PLAYING;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Reprise immédiate depuis le tampon, au point de départ exact, avec le son
+function startPreloadedPlayback() {
+    preloadHold = false;
+    try {
+        const time = youtubePlayer.getCurrentTime() || 0;
+        if (Math.abs(time - preloadStartTime) > 0.05) youtubePlayer.seekTo(preloadStartTime, true);
+        youtubePlayer.unMute();
+        youtubePlayer.playVideo();
+    } catch (e) {
+        console.error("Erreur au lancement de la vidéo préchargée:", e);
+    }
+}
+
 // Crée le lecteur YouTube dans #youtube-player
-function createYouTubePlayer(videoId, autoplay) {
+function createYouTubePlayer(videoId, autoplay, holdWhenReady = true, muted = canPreloadMuted()) {
+    playerReady = false;
+    preloadStartTime = getAutoStartTime(videoId);
+    preloadHold = holdWhenReady && canPreloadMuted() && !revealPending;
     youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
             host: useNoCookieHost ? 'https://www.youtube-nocookie.com' : 'https://www.youtube.com',
             playerVars: {
                 'autoplay': autoplay ? 1 : 0, // Autoplay 0 si contrôles natifs initiaux
+                'start': Math.floor(getAutoStartTime(videoId)), // Option « lancer au refrain »
                 'controls': 0, // Controls 1 si contrôles natifs initiaux
                 'showinfo': 0,
                 'modestbranding': 1,
@@ -1484,7 +1669,7 @@ function createYouTubePlayer(videoId, autoplay) {
                 'cc_load_policy': 0,
                 'color': 'white',
                 'playsinline': 1, 
-                'mute': 0,
+                'mute': muted ? 1 : 0, // Préchargement silencieux, le son revient à l'affichage
                 'origin': window.location.origin,
                 'enablejsapi': 1
             },
@@ -1907,6 +2092,16 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
 
 // Fonction appelée lorsque le lecteur est prêt
 function onPlayerReady(event) {
+    playerReady = true;
+    if (pendingPreloadVideoId) {
+        const videoId = pendingPreloadVideoId;
+        pendingPreloadVideoId = null;
+        if (!videoLoadingCancelled && currentProduction && currentProduction.id === videoId) {
+            preloadVideoInPlayer(videoId);
+            if (revealPending) revealPreloadedPlayback();
+            return;
+        }
+    }
     if (videoLoadingCancelled) {
         console.log("Lecture annulée pendant onPlayerReady");
         if (youtubePlayer) {
@@ -1917,7 +2112,11 @@ function onPlayerReady(event) {
     }
     isLoadingVideo = false;
     console.log("Player prêt.");
-    if (isRecoveringPlayer) {
+    if (revealPending) {
+        // La carte a déjà été révélée pendant que le lecteur se créait
+        isRecoveringPlayer = false;
+        revealPreloadedPlayback();
+    } else if (isRecoveringPlayer) {
         isRecoveringPlayer = false;
         try { event.target.playVideo(); } catch (e) { /* le watchdog réessaiera */ }
     }
@@ -1925,18 +2124,27 @@ function onPlayerReady(event) {
 
 // Fonction appelée lorsque l'état du lecteur change
 function onPlayerStateChange(event) {
-    // Si le chargement a été annulé, arrêter immédiatement la vidéo
+    // Si le chargement a été annulé, arrêter la vidéo — uniquement si elle joue ou charge :
+    // stopVideo() déclenche lui-même des changements d'état ; l'appeler à chaque état créait
+    // une boucle infinie (-1 ↔ 5) dont les ordres en attente empêchaient la vidéo suivante de démarrer
     if (videoLoadingCancelled) {
-        if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
+        if ((event.data === YT.PlayerState.PLAYING || event.data === YT.PlayerState.BUFFERING) &&
+            youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
             youtubePlayer.stopVideo();
-            stopProgressBarUpdate();
         }
+        stopProgressBarUpdate();
         return;
     }
 
     // Émettre des événements personnalisés pour les différents états
     switch (event.data) {
         case YT.PlayerState.PLAYING:
+            if (preloadHold) {
+                // Préchargement terminé : on attend l'affichage de la vidéo, en pause sur le départ
+                preloadHold = false;
+                youtubePlayer.pauseVideo();
+                break;
+            }
             document.dispatchEvent(new Event('YT.PlayerState.PLAYING'));
             isLoadingVideo = false; 
             console.log("Player state: PLAYING");
@@ -2179,6 +2387,9 @@ async function revealCard(card) {
         // Indiquer qu'on commence le préchargement
         isPreloadingVideo = true; 
         // Lancer le chargement de la vidéo en arrière-plan (sans await)
+        // Le conteneur vidéo doit être affiché (transparent) pendant l'animation :
+        // Chrome ne charge pas une vidéo muette dont le cadre est en display:none
+        if (canPreloadMuted()) domElements.videoContainer.style.display = 'block';
         loadYouTubeVideo(randomProduction.id);        
 
         // Execute animation sequence

@@ -1397,3 +1397,45 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text {
     top: calc(100% + var(--video-border-width) + 13.5cqw + 8px);
     font-size: clamp(9px, 2.6cqw, 14px);
 }
+
+/* Case à cocher « lancer au refrain » (bas à droite) */
+.autostart-toggle {
+    position: fixed;
+    right: 14px;
+    bottom: 12px;
+    z-index: 1001; /* utilisable aussi pendant l'écran de fin */
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px 4px 7px;
+    font-family: 'SAINT-DROP', 'Impact', 'Arial Black', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    line-height: 1;
+    color: rgba(255, 204, 0, 0.75);
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: color 0.15s ease;
+}
+
+.autostart-toggle:hover,
+.autostart-toggle:has(input:checked) {
+    color: #ffcc00;
+}
+
+.autostart-toggle input {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    accent-color: #ffcc00;
+    cursor: pointer;
+}
+
+/* Vidéo en préchargement (transparente) : rien n'y est cliquable tant qu'elle n'est pas affichée */
+.video-container:not(.visible),
+.video-container:not(.visible) * {
+    pointer-events: none !important;
+}
