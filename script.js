@@ -1,3 +1,49 @@
+// Timers non bridés en arrière-plan
+// Quand l'onglet/la fenêtre n'est pas au premier plan (ex : capture OBS), Chrome bride
+// les setTimeout/setInterval de la page (1s minimum, puis 1 min après 5 min).
+// Les timers d'un Web Worker ne sont pas bridés : on les utilise pour piloter le jeu.
+const bgTimers = (() => {
+    const callbacks = new Map();
+    let nextId = 1;
+    let worker = null;
+    try {
+        const src = `const t = new Map();
+            onmessage = (e) => {
+                const { cmd, id, ms } = e.data;
+                if (cmd === 'clear') { clearTimeout(t.get(id)); clearInterval(t.get(id)); t.delete(id); return; }
+                if (cmd === 'timeout') t.set(id, setTimeout(() => { t.delete(id); postMessage(id); }, ms));
+                else t.set(id, setInterval(() => postMessage(id), ms));
+            };`;
+        worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+        worker.onmessage = (e) => {
+            const entry = callbacks.get(e.data);
+            if (!entry) return;
+            if (!entry.repeat) callbacks.delete(e.data);
+            entry.fn();
+        };
+    } catch (err) {
+        worker = null; // Repli sur les timers natifs
+    }
+    const schedule = (fn, ms, repeat) => {
+        if (!worker) return repeat ? setInterval(fn, ms) : setTimeout(fn, ms);
+        const id = nextId++;
+        callbacks.set(id, { fn, repeat });
+        worker.postMessage({ cmd: repeat ? 'interval' : 'timeout', id, ms: ms || 0 });
+        return id;
+    };
+    const clear = (id) => {
+        if (id == null) return;
+        if (!worker) { clearTimeout(id); clearInterval(id); return; }
+        callbacks.delete(id);
+        worker.postMessage({ cmd: 'clear', id });
+    };
+    return { schedule, clear };
+})();
+const bgSetTimeout = (fn, ms) => bgTimers.schedule(fn, ms, false);
+const bgSetInterval = (fn, ms) => bgTimers.schedule(fn, ms, true);
+const bgClearTimeout = (id) => bgTimers.clear(id);
+const bgClearInterval = (id) => bgTimers.clear(id);
+
 // Variables globales
 let redCategories = {};
 let blackCategories = {};
@@ -285,7 +331,7 @@ function setupCardHoverEffects() {
             }
 
             // Ajouter la classe vibrating après un délai
-            hoverTimers[cardId] = setTimeout(() => {
+            hoverTimers[cardId] = bgSetTimeout(() => {
                 cardInner.classList.add('vibrating');
             }, 300); // Correspond au délai d'animation CSS
         });
@@ -294,7 +340,7 @@ function setupCardHoverEffects() {
         card.addEventListener('mouseleave', () => {
             // Annuler le timer si la souris quitte la carte avant le délai
             if (hoverTimers[cardId]) {
-                clearTimeout(hoverTimers[cardId]);
+                bgClearTimeout(hoverTimers[cardId]);
                 delete hoverTimers[cardId];
             }
 
@@ -308,10 +354,10 @@ function setupCardHoverEffects() {
                 cardInner.style.transform = 'scale(var(--hover-scale))';
 
                 // Après un court délai, revenir à l'échelle normale avec transition
-                setTimeout(() => {
+                bgSetTimeout(() => {
                     cardInner.style.transform = 'scale(1)';
                     // Nettoyer les styles après la transition
-                    setTimeout(() => {
+                    bgSetTimeout(() => {
                         cardInner.style.animation = '';
                         cardInner.style.transform = '';
                         cardInner.classList.remove('vibrating');
@@ -328,6 +374,8 @@ function setupCardHoverEffects() {
 // Fonction commune pour réinitialiser l'interface utilisateur
 function resetUI() {
     videoLoadingCancelled = true;
+    disarmPlaybackWatchdog();
+    isRecoveringPlayer = false;
     batchDOMUpdates(() => {
         // Cacher conteneur vidéo
          if (domElements.videoContainer) {
@@ -412,7 +460,7 @@ function hideVideoAndReset() {
     isLoadingVideo = false;
 
     // Attendre un peu avant de réinitialiser complètement
-    setTimeout(() => {
+    bgSetTimeout(() => {
         initializeGame();
     }, 200);
 }
@@ -420,7 +468,7 @@ function hideVideoAndReset() {
 // Animation sequence manager
 class AnimationSequence {
     constructor() {
-        this.delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+        this.delay = ms => new Promise(resolve => bgSetTimeout(resolve, ms));
     }
 
     async centerCard(card) {
@@ -455,7 +503,7 @@ class AnimationSequence {
 
         // Ajouter la classe selected
         card.classList.add('selected');
-        await this.delay(400); // Attendre l'animation de centrage
+        await this.delay(260); // Attendre l'animation de centrage (--card-transition)
     }
 
     async fadeOutOtherCards(card) {
@@ -467,7 +515,7 @@ class AnimationSequence {
             }
         });
         document.querySelector('.bottom-text').classList.add('hidden');
-        await this.delay(400); // Wait for fade out
+        await this.delay(260); // Wait for fade out (--card-transition)
     }
 
     async updateCardContent(card, randomProduction) {
@@ -527,8 +575,6 @@ class AnimationSequence {
 
         bpmText.classList.remove('visible');
         bpmText.classList.add('hidden');
-
-        await this.delay(300);
     }
 
     async revealCard(card) {
@@ -541,16 +587,10 @@ class AnimationSequence {
         // Ensure the rotation works properly with dynamically sized cards
         cardInner.style.transformOrigin = 'center center';
 
-        // Forcer un reflow avant d'ajouter la classe revealed
-        void card.offsetWidth;
-
         // Ajouter la classe revealed pour déclencher la rotation
         card.classList.add('revealed');
 
-        // Vérifier que la transformation est bien appliquée
-        console.log("Style de transformation:", getComputedStyle(cardInner).transform);
-
-        await this.delay(600); // Wait for rotation
+        await this.delay(380); // Wait for rotation (--card-rotation)
     }
 
     async descendCard(card) {
@@ -571,7 +611,7 @@ class AnimationSequence {
 
         // La classe descend va maintenant utiliser la variable CSS pour la distance
         card.classList.add('descend');
-        await this.delay(150); // Attendre la descente
+        await this.delay(80); // Laisser la descente démarrer
 
         // LECTURE DE LA VIDEO / PLAY
         // Indiquer que le préchargement est terminé et lancer la lecture
@@ -585,6 +625,7 @@ class AnimationSequence {
             if (currentState === YT.PlayerState.UNSTARTED || currentState === YT.PlayerState.CUED || currentState === YT.PlayerState.PAUSED) {
                 console.log("Lancement de la lecture depuis descendCard (non-iOS ou iOS après 1er play).");
                 youtubePlayer.playVideo();
+                armPlaybackWatchdog();
             } else {
                 console.log("descendCard: La vidéo est déjà en lecture ou dans un état inattendu (" + currentState + ").");
                 // Si elle joue déjà (PLAYING ou BUFFERING), s'assurer que la barre démarre (si contrôles custom)
@@ -597,9 +638,11 @@ class AnimationSequence {
             console.log("Annoying Browser  détecté (premier play): La lecture attendra l'interaction utilisateur sur les contrôles natifs.");
         } else {
             console.log("Lecteur non prêt ou fonction playVideo non disponible au moment de descendCard.");
+            // Lecteur en cours de création (autoplay) : surveiller qu'il démarre bien
+            armPlaybackWatchdog();
         }
 
-        await this.delay(150); // Attendre la descente
+        await this.delay(80); // La vidéo apparaît pendant la fin de la descente
     }
 
     async showVideoAndControls() {
@@ -708,7 +751,7 @@ async function resetCardWithAnimation(card) {
     card.style.transform = '';
 
     // Nettoyer la classe quick-reset après la fin de toutes les animations
-    setTimeout(() => {
+    bgSetTimeout(() => {
         cardInner.classList.remove('quick-reset');
     }, 250);
 
@@ -721,7 +764,7 @@ async function initializeGame() {
 
     // Arrêter le timer de l'écran de fin s'il est en cours
     if (endScreenTimerInterval) {
-        clearInterval(endScreenTimerInterval);
+        bgClearInterval(endScreenTimerInterval);
         endScreenTimerInterval = null;
     }
 
@@ -813,7 +856,7 @@ async function initializeGame() {
 
         // Annuler les timers de survol existants
         if (hoverTimers[cardId]) {
-            clearTimeout(hoverTimers[cardId]);
+            bgClearTimeout(hoverTimers[cardId]);
             delete hoverTimers[cardId];
         }
 
@@ -1161,15 +1204,12 @@ async function loadYouTubeVideo(videoId) {
             console.log("Réutilisation du lecteur YouTube existant pour charger la vidéo:", videoId);
             stopProgressBarUpdate();
             // Charger la nouvelle vidéo. La lecture sera gérée par onPlayerStateChange.
-            youtubePlayer.loadVideoById(videoId);
-            // Mettre à jour l'état ici car onReady ne sera pas appelé pour loadVideoById
+            // cueVideoById prépare la vidéo sans la lancer (évite la course load + pause
+            // qui pouvait laisser le lecteur bloqué) ; descendCard lance la lecture.
+            youtubePlayer.cueVideoById(videoId);
+            // Mettre à jour l'état ici car onReady ne sera pas appelé
             isLoadingVideo = false; 
-            console.log("Nouvelle vidéo chargée dans le lecteur existant.");
-            // Forcer la pause immédiatement après le chargement demandé
-            if (typeof youtubePlayer.pauseVideo === 'function') {
-                console.log("Forçage de la pause après loadVideoById.");
-                youtubePlayer.pauseVideo();
-            }
+            console.log("Nouvelle vidéo préparée dans le lecteur existant.");
             return; // Sortir de la fonction car nous avons réutilisé le lecteur
         }
         
@@ -1184,11 +1224,103 @@ async function loadYouTubeVideo(videoId) {
         
         console.log(`Activation initiale des contrôles natifs: ${enableNativeControls}`);
 
-        // Créer un nouveau lecteur YouTube avec des contrôles adaptés au contexte
-        youtubePlayer = new YT.Player('youtube-player', {
+        createYouTubePlayer(videoId, !enableNativeControls);
+    } catch (error) {
+        console.error("Erreur lors du chargement de la vidéo:", error);
+        isLoadingVideo = false;
+    }
+}
+
+// --- Récupération automatique du lecteur YouTube (vidéo restée grise) ---
+// Il arrive que l'iframe YouTube se bloque (écran gris) et que même un F5 ne suffise pas,
+// car Chrome réutilise le même processus youtube.com. On détecte le blocage et on recrée
+// le lecteur, en alternant youtube.com / youtube-nocookie.com : un autre domaine force
+// Chrome à utiliser un processus neuf.
+let playbackWatchdogId = null;
+let playbackRecoveryAttempts = 0;
+let useNoCookieHost = false;
+let isRecoveringPlayer = false;
+const PLAYBACK_WATCHDOG_MS = 8000;
+const MAX_PLAYBACK_RECOVERIES = 2;
+
+function disarmPlaybackWatchdog() {
+    if (playbackWatchdogId) {
+        bgClearTimeout(playbackWatchdogId);
+        playbackWatchdogId = null;
+    }
+}
+
+function armPlaybackWatchdog() {
+    disarmPlaybackWatchdog();
+    // Sur iOS/navigateurs restrictifs, le 1er play attend un geste de l'utilisateur : pas de surveillance
+    if (isAnnoyingBrowser() && !iosFirstPlayDone) return;
+    const productionAtArm = currentProduction;
+    playbackWatchdogId = bgSetTimeout(() => {
+        playbackWatchdogId = null;
+        if (videoLoadingCancelled || !currentProduction || currentProduction !== productionAtArm) return;
+        let state = null;
+        let time = 0;
+        try {
+            state = youtubePlayer && typeof youtubePlayer.getPlayerState === 'function' ? youtubePlayer.getPlayerState() : null;
+            time = youtubePlayer && typeof youtubePlayer.getCurrentTime === 'function' ? (youtubePlayer.getCurrentTime() || 0) : 0;
+        } catch (e) {
+            state = null;
+        }
+        // Lecture qui avance, mise en pause volontaire ou fin : tout va bien
+        if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED ||
+            ((state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) && time > 0.3)) {
+            playbackRecoveryAttempts = 0;
+            return;
+        }
+        console.warn(`Lecteur YouTube bloqué (état: ${state}, temps: ${time}). Récupération...`);
+        recoverYouTubePlayer();
+    }, PLAYBACK_WATCHDOG_MS);
+}
+
+function destroyYouTubePlayer() {
+    stopProgressBarUpdate();
+    if (youtubePlayer && typeof youtubePlayer.destroy === 'function') {
+        try { youtubePlayer.destroy(); } catch (e) { console.error("Erreur destruction lecteur:", e); }
+    }
+    youtubePlayer = null;
+    // destroy() retire l'iframe : s'assurer que l'emplacement du lecteur existe toujours
+    const container = domElements.videoContainer;
+    let slot = document.getElementById('youtube-player');
+    if (slot && slot.tagName === 'IFRAME') {
+        slot.remove();
+        slot = null;
+    }
+    if (!slot && container) {
+        slot = document.createElement('div');
+        slot.id = 'youtube-player';
+        container.insertBefore(slot, container.firstChild);
+    }
+}
+
+function recoverYouTubePlayer() {
+    if (!currentProduction) return;
+    if (playbackRecoveryAttempts >= MAX_PLAYBACK_RECOVERIES) {
+        // On laisse le dernier lecteur affiché (ex : lecture auto bloquée par le navigateur,
+        // un clic sur la vidéo suffit alors)
+        console.error("Le lecteur ne démarre toujours pas, abandon de la récupération automatique.");
+        playbackRecoveryAttempts = 0;
+        return;
+    }
+    playbackRecoveryAttempts++;
+    useNoCookieHost = !useNoCookieHost;
+    destroyYouTubePlayer();
+    isRecoveringPlayer = true;
+    createYouTubePlayer(currentProduction.id, true);
+    armPlaybackWatchdog();
+}
+
+// Crée le lecteur YouTube dans #youtube-player
+function createYouTubePlayer(videoId, autoplay) {
+    youtubePlayer = new YT.Player('youtube-player', {
             videoId: videoId,
+            host: useNoCookieHost ? 'https://www.youtube-nocookie.com' : 'https://www.youtube.com',
             playerVars: {
-                'autoplay': enableNativeControls ? 0 : 1, // Autoplay 0 si contrôles natifs initiaux
+                'autoplay': autoplay ? 1 : 0, // Autoplay 0 si contrôles natifs initiaux
                 'controls': 0, // Controls 1 si contrôles natifs initiaux
                 'showinfo': 0,
                 'modestbranding': 1,
@@ -1209,10 +1341,6 @@ async function loadYouTubeVideo(videoId) {
                 'onError': onPlayerError
             }
         });
-    } catch (error) {
-        console.error("Erreur lors du chargement de la vidéo:", error);
-        isLoadingVideo = false;
-    }
 }
 
 // Fonction pour appliquer des styles spécifiques pour le navigateur Instagram
@@ -1332,6 +1460,12 @@ function createCustomYouTubeOverlay() {
 }
 
 // Fonction pour mettre à jour la logique de la barre de progression
+function setProgressBar(progressBar, percentage) {
+    if (!progressBar) return;
+    const ratio = Math.max(0, Math.min(1, (percentage || 0) / 100));
+    progressBar.style.transform = `scaleX(${ratio})`;
+}
+
 function updateProgressBarLogic() {
     const progressBar = document.querySelector('.progress-bar');
     // S'assurer que le lecteur et la barre existent
@@ -1350,9 +1484,9 @@ function updateProgressBarLogic() {
             // Vérifier que la durée est valide
             if(duration > 0) {
                  const percentage = Math.min(100, (currentTime / duration) * 100); // Limiter à 100%
-                 progressBar.style.width = `${percentage}%`;
+                 setProgressBar(progressBar, percentage);
             } else {
-                 progressBar.style.width = '0%'; // Durée non valide, reset
+                 setProgressBar(progressBar, 0); // Durée non valide, reset
             }
         }
          // Note: L'arrêt de l'intervalle est géré par les appels directs à stopProgressBarUpdate
@@ -1367,14 +1501,11 @@ function updateProgressBarLogic() {
 function startProgressBarUpdate() {
     // S'assurer qu'un seul intervalle tourne à la fois
     if (progressBarIntervalId) {
-        clearInterval(progressBarIntervalId);
+        bgClearInterval(progressBarIntervalId);
     }
     console.log("Démarrage de la mise à jour de la barre de progression.");
-    // Réinitialiser la barre au cas où (utile si on vient d'un état stoppé)
-    const progressBar = document.querySelector('.progress-bar');
-    if (progressBar) progressBar.style.width = '0%';
     // Démarrer un nouvel intervalle
-    progressBarIntervalId = setInterval(updateProgressBarLogic, 250); // Vérifie toutes les 250ms
+    progressBarIntervalId = bgSetInterval(updateProgressBarLogic, 250); // Vérifie toutes les 250ms
     // Faire une mise à jour immédiate pour éviter un délai initial
     updateProgressBarLogic(); 
 }
@@ -1382,7 +1513,7 @@ function startProgressBarUpdate() {
 // Fonction pour arrêter la mise à jour de la barre de progression
 function stopProgressBarUpdate() {
     if (progressBarIntervalId) {
-        clearInterval(progressBarIntervalId);
+        bgClearInterval(progressBarIntervalId);
         progressBarIntervalId = null;
         console.log("Arrêt de la mise à jour de la barre de progression.");
     }
@@ -1416,8 +1547,8 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
     function showCenterIndicator(iconType) {
         centerIndicator.innerHTML = `<b>${iconType}</b>`;
         centerIndicator.classList.add('visible');
-        if (timeoutId) clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
+        if (timeoutId) bgClearTimeout(timeoutId);
+        timeoutId = bgSetTimeout(() => {
             centerIndicator.classList.remove('visible');
         }, 800);
     }
@@ -1509,7 +1640,7 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
         const seekTime = calculateSeekTime(event);
         const duration = youtubePlayer.getDuration() || 1;
         const percentage = (seekTime / duration) * 100;
-        progressBar.style.width = `${percentage}%`;
+        setProgressBar(progressBar, percentage);
         
         updateSeekTooltip(event); // <-- Mettre à jour le tooltip pendant le glisser
     }
@@ -1521,6 +1652,7 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
         const state = youtubePlayer.getPlayerState();
         wasPlayingBeforeSeek = (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING);
         stopProgressBarUpdate(); 
+        progressContainer.classList.add('seeking'); // Barre sans transition pendant le glisser
 
         updateVisualSeek(event); // Met à jour barre + tooltip
         
@@ -1547,6 +1679,7 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
         // au cas où l'event se déclenche à nouveau rapidement.
         const wasSeeking = isSeeking; 
         isSeeking = false; 
+        progressContainer.classList.remove('seeking');
         
         // Cacher le tooltip
         if (tooltipElement) {
@@ -1571,7 +1704,7 @@ function setupCustomVideoControls(overlay, centerIndicator, progressBar, progres
                 // Met à jour la barre visuellement à la position demandée
                 const duration = youtubePlayer.getDuration() || 1;
                 const percentage = (finalSeekTime / duration) * 100;
-                progressBar.style.width = `${percentage}%`; 
+                setProgressBar(progressBar, percentage); 
             } else {
                  console.error("Impossible de calculer le temps final pour seekTo.");
                  // Optionnel : forcer une mise à jour de la barre à la position actuelle réelle ?
@@ -1604,6 +1737,10 @@ function onPlayerReady(event) {
     }
     isLoadingVideo = false;
     console.log("Player prêt.");
+    if (isRecoveringPlayer) {
+        isRecoveringPlayer = false;
+        try { event.target.playVideo(); } catch (e) { /* le watchdog réessaiera */ }
+    }
 }
 
 // Fonction appelée lorsque l'état du lecteur change
@@ -1670,6 +1807,8 @@ let endScreenTimerInterval = null;
 // Fonction pour effectuer des actions après la fin de la vidéo
 function actionsAfterVideoEnded() {
     console.log("Vidéo terminée, affichage de l'écran de fin.");
+    disarmPlaybackWatchdog();
+    playbackRecoveryAttempts = 0;
     stopProgressBarUpdate(); // Arrêter la barre de progression
 
     if (!domElements.endScreenContainer || !domElements.endScreenTitle || !domElements.endScreenButtons || !domElements.buyButton || !domElements.downloadButton || !currentProduction) {
@@ -1681,7 +1820,7 @@ function actionsAfterVideoEnded() {
     
     // Arrêter tout timer existant pour éviter les doublons
     if (endScreenTimerInterval) {
-        clearInterval(endScreenTimerInterval);
+        bgClearInterval(endScreenTimerInterval);
         endScreenTimerInterval = null;
     }
     
@@ -1762,7 +1901,7 @@ function initEndScreenTimer() {
     timerElement.classList.remove('urgent');
     
     // Démarrer le compte à rebours
-    endScreenTimerInterval = setInterval(() => {
+    endScreenTimerInterval = bgSetInterval(() => {
         timeLeft--;
         
         // Mettre à jour l'affichage
@@ -1775,7 +1914,7 @@ function initEndScreenTimer() {
         
         // Quand le timer atteint 0, fermer l'écran et réinitialiser le jeu
         if (timeLeft <= 0) {
-            clearInterval(endScreenTimerInterval);
+            bgClearInterval(endScreenTimerInterval);
             endScreenTimerInterval = null;
             
             // Fermer l'écran de fin et réinitialiser
@@ -1799,7 +1938,7 @@ function handleEndScreenClick(event) {
         
         // Arrêter le timer
         if (endScreenTimerInterval) {
-            clearInterval(endScreenTimerInterval);
+            bgClearInterval(endScreenTimerInterval);
             endScreenTimerInterval = null;
         }
         
@@ -1816,10 +1955,10 @@ function handleEndScreenClick(event) {
 }
 
 // Fonction pour effectuer des mises à jour DOM groupées
+// (exécution immédiate : requestAnimationFrame est suspendu quand la page n'est pas
+// au premier plan, ce qui bloquait l'affichage jusqu'au retour sur la fenêtre)
 function batchDOMUpdates(updateFunction) {
-    requestAnimationFrame(() => {
-        updateFunction();
-    });
+    updateFunction();
 }
 
 // Fonction pour révéler une carte
@@ -1842,7 +1981,7 @@ async function revealCard(card) {
         const cardId = card.getAttribute('data-index');
 
         if (hoverTimers[cardId]) {
-            clearTimeout(hoverTimers[cardId]);
+            bgClearTimeout(hoverTimers[cardId]);
             delete hoverTimers[cardId];
         }
 
@@ -1863,8 +2002,11 @@ async function revealCard(card) {
         loadYouTubeVideo(randomProduction.id);        
 
         // Execute animation sequence
-        await animationSequence.centerCard(card);
-        await animationSequence.fadeOutOtherCards(card);
+        // Centrage et disparition des autres cartes en parallèle
+        await Promise.all([
+            animationSequence.centerCard(card),
+            animationSequence.fadeOutOtherCards(card)
+        ]);
         await animationSequence.updateCardContent(card, randomProduction);
         await animationSequence.revealCard(card);
         await animationSequence.descendCard(card);
@@ -1956,7 +2098,7 @@ async function handleRevealedCardClick(event) {
         // Réinitialiser la barre de progression visuellement si elle existe
         const progressBar = document.querySelector('.progress-bar');
         if (progressBar) {
-            progressBar.style.width = '0%';
+            setProgressBar(progressBar, 0);
         }
          // Cacher le bouton Rejouer s'il était visible
         if (domElements.replayButton) {
@@ -2474,11 +2616,11 @@ let lastOrientation = isVertical(); // Stocker l'état initial de l'orientation
 function handleWindowResize() {
     // Clear the timeout if it exists
     if (resizeTimeout) {
-        clearTimeout(resizeTimeout);
+        bgClearTimeout(resizeTimeout);
     }
 
     // Set a timeout to avoid excessive function calls during resize
-    resizeTimeout = setTimeout(() => {
+    resizeTimeout = bgSetTimeout(() => {
         // Vérifier si l'orientation a changé        
         const currentOrientation = isVertical();
         const orientationChanged = currentOrientation !== lastOrientation;
@@ -2630,7 +2772,9 @@ function updateGlobalCSSVariables() {
 // Fonction appelée en cas d'erreur du lecteur
 function onPlayerError(event) {
     console.error("Erreur de lecture YouTube:", event.data);
-    // En cas d'erreur, on peut aussi réinitialiser
+    disarmPlaybackWatchdog();
+    // Repartir d'un lecteur neuf au prochain tirage (ne pas réutiliser un lecteur en erreur)
+    destroyYouTubePlayer();
     hideVideoAndReset();
 }
 

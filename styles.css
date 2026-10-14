@@ -74,6 +74,7 @@ body {
 
 .decorative-cards {
     position: fixed;
+    will-change: transform; /* calque isolé, rasterisé une seule fois */
     top: 0;
     left: -100px;
     width: calc(100% + 200px);
@@ -125,7 +126,7 @@ h1 {
     transform: scaleY(1.15);
     z-index: 2;
     opacity: 1;
-    transition: all 0.5s ease;
+    transition: opacity 0.4s ease, transform 0.4s ease;
     font-family: 'SAINT-DROP', 'Impact', 'Arial Black', sans-serif;
     animation: none;
     -webkit-font-smoothing: antialiased;
@@ -184,8 +185,8 @@ h1.hidden {
 
 /* Variables pour les animations */
 :root {
-    --card-transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    --card-rotation: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    --card-transition: 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+    --card-rotation: 0.38s cubic-bezier(0.4, 0, 0.2, 1);
     --card-scale: 1.2;
     --hover-scale: 1.05;
     --main-title-size: 130px; /* Variable pour la taille du titre principal */
@@ -205,7 +206,9 @@ h1.hidden {
     transform-style: preserve-3d;
     will-change: transform;
     cursor: pointer;
-    transition: all var(--card-transition);
+    transition: transform var(--card-transition), opacity var(--card-transition),
+                width var(--card-transition), height var(--card-transition),
+                visibility var(--card-transition);
     transform-origin: center center;
     pointer-events: auto;
 }
@@ -263,7 +266,8 @@ h1.hidden {
 
 .card.revealed .card-back {
     opacity: 1;
-    transition-delay: 0.3s;
+    /* bascule à mi-rotation (carte de profil) */
+    transition: opacity 0.12s ease 0.16s;
 }
 
 /* Card states */
@@ -280,7 +284,7 @@ h1.hidden {
 
 .card.revealed .card-inner {
     transform: rotateY(180deg) rotateZ(90deg) !important;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--card-rotation);
 }
 
 /* Fade out animation for other cards */
@@ -288,7 +292,6 @@ h1.hidden {
     opacity: 0;
     pointer-events: none;
     transform: translateY(100px) scale(0.8);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* CONTAINER YOUTUBE */
@@ -296,12 +299,10 @@ h1.hidden {
 .video-container {
     width: 560px;
     height: 290px;
-    box-shadow: 0 0 60px rgba(255, 204, 0, 0.4);
     border-radius: var(--video-border-radius);
-    overflow: hidden;
     opacity: 0;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transition-delay: 0.2s;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.05s;
     pointer-events: none;
     z-index: 1;
     background-color: #000;
@@ -321,7 +322,9 @@ h1.hidden {
     position: absolute;
     top: 0%;
     left: 0%;
-    border-radius: 0px;
+    /* arrondi porté par l'iframe (le conteneur n'a plus overflow:hidden pour laisser vivre le halo) */
+    border-radius: max(0px, calc(var(--video-border-radius) - var(--video-border-width)));
+    overflow: hidden;
     background-color: #000;
     pointer-events: none !important;
     z-index: 5; /* Assurez-vous que c'est sous l'overlay mais au-dessus des autres éléments */
@@ -331,14 +334,27 @@ h1.hidden {
 .video-container.visible {
     opacity: 1;
     pointer-events: auto !important;
-    animation: subtle-pulse 4s infinite ease-in-out;
     z-index: 5;
 }
 
-/* Animation de pulsation subtile */
+/* Halo jaune pulsant : ombre peinte une seule fois, seule son opacité est animée (GPU) */
+.video-container::before {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--video-border-width));
+    border-radius: var(--video-border-radius);
+    box-shadow: 0 0 80px rgba(255, 204, 0, 0.3);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.video-container.visible::before {
+    animation: subtle-pulse 4s infinite ease-in-out;
+}
+
 @keyframes subtle-pulse {
-    0%, 100% { box-shadow: 0 0 80px rgba(255, 204, 0, 0.3); }
-    50% { box-shadow: 0 0 80px rgba(255, 204, 0, 0.25); }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.83; }
 }
 
 /* Bordure jaune pour le conteneur vidéo */
@@ -372,7 +388,6 @@ h1.hidden {
     opacity: 0;
     pointer-events: none;
     transform: translateY(100px) scale(0.8);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     visibility: hidden;
 }
 
@@ -503,7 +518,7 @@ h1.hidden {
         0 0 25px rgba(255, 204, 0, 0.164),
         1px 1px 1px rgba(0,0,0,0.4);
     opacity: 1;
-    transition: all 0.5s ease;
+    transition: opacity 0.35s ease, transform 0.35s ease;
     z-index: 1;
     font-weight: 600;
     -webkit-text-stroke: 0.5px rgba(0,0,0,0.3);
@@ -529,7 +544,7 @@ h1.hidden {
         0 0 25px rgba(255, 204, 0, 0.164),
         1px 1px 1px rgba(0,0,0,0.4);
     opacity: 0;
-    transition: all 0.5s ease;
+    transition: opacity 0.35s ease, transform 0.35s ease;
     z-index: 1;
     font-weight: 600;
     -webkit-text-stroke: 0.5px rgba(0,0,0,0.3);
@@ -552,8 +567,9 @@ h1.hidden {
     justify-content: center;
     gap: 8px;
     opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                background 0.3s ease, box-shadow 0.3s ease, visibility 0.3s;
+    box-shadow:
         0 0 30px rgba(255, 204, 0, 0.3),
         0 0 60px rgba(255, 204, 0, 0.2),
         inset 1px 1px 1px rgba(255, 255, 255, 0.4),
@@ -596,7 +612,6 @@ h1.hidden {
     text-rendering: geometricPrecision;
     font-smooth: always;
     font-synthesis: none;
-    will-change: transform;
     transform-origin: center center;
     filter: none;
     image-rendering: -webkit-optimize-contrast;
@@ -658,8 +673,8 @@ h1.hidden {
     transform: scaleY(1.15);
     z-index: 2;
     opacity: 0;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transition-delay: 0.2s;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.05s;
     font-family: 'SAINT-DROP', 'Impact', 'Arial Black', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -696,8 +711,8 @@ h1.hidden {
     font-size: 1.8em;
     z-index: 2;
     opacity: 0;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transition-delay: 0.3s;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.1s;
     text-shadow: 
         0 0 8px rgba(255, 204, 0, 0.3),
         0 0 15px rgba(255, 204, 0, 0.2),
@@ -785,6 +800,10 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     text-rendering: optimizeLegibility;
     font-smooth: always;
     font-synthesis: none;
+}
+
+/* Calques GPU uniquement pour les textes qui s'animent */
+h1, .prod-title, .bpm-text, .bottom-text, .restart-text {
     will-change: transform, opacity;
 }
 
@@ -796,7 +815,8 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     width: 100%;
     height: 100%;
     z-index: 10;
-    background-color: rgba(0, 0, 0, 0.01); /* Presque transparent mais bloque les clics */
+    background-color: transparent; /* Capte les clics sans mélange au-dessus de la vidéo */
+    border-radius: max(0px, calc(var(--video-border-radius) - var(--video-border-width)));
     display: flex;
     justify-content: center;
     align-items: flex-end;
@@ -860,8 +880,14 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     height: 100%;
     background-color: rgba(255, 204, 0, 0.8);
     border-radius: 3px;
-    width: 0%;
-    transition: width 0.1s linear;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.25s linear; /* interpolation continue entre deux mises à jour (250ms) */
+}
+
+.progress-container.seeking .progress-bar {
+    transition: none;
 }
 
 /* Indicateur central pour play/pause sur clic principal */
@@ -909,7 +935,7 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     letter-spacing: 2px;
     transform: scaleY(1.15);
     opacity: 1;
-    transition: all 0.5s ease;
+    transition: opacity 0.4s ease, transform 0.4s ease;
     font-family: 'SAINT-DROP', 'Impact', 'Arial Black', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -1093,8 +1119,12 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     border: 6px solid rgba(0, 0, 0, 1) !important;
     border-radius: 19px !important;
     
-    /* Animation de pulsation - s'assurer qu'elle est bien appliquée */
-    animation: downloadButtonPulse 1s infinite alternate ease-in-out !important;
+    /* Pulsation portée par ::after (opacité seule) */
+    animation: none !important;
+    position: relative !important;
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.7),
+                0 0 80px rgba(255, 204, 0, 0.4),
+                0 0 120px rgba(255, 204, 0, 0.2) !important;
     
     /* Assurer la visibilité */
     z-index: 1000 !important;
@@ -1127,20 +1157,24 @@ h1, .prod-title, .bpm-text, .bottom-text, .restart-text, .card-back span, .buy-b
     order: 2 !important; /* Pour changer l'ordre : icône après le texte */
 }
 
-/* Animation de pulsation pour attirer l'attention - plus visible */
+/* Animation de pulsation pour attirer l'attention : halo supplémentaire en fondu (GPU) */
+.end-screen-container .download-button::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 19px;
+    box-shadow: 0 0 45px rgba(255, 204, 0, 0.5),
+                0 0 90px rgba(255, 204, 0, 0.35),
+                0 0 135px rgba(255, 204, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+    animation: downloadButtonPulse 1s infinite alternate ease-in-out;
+}
+
 @keyframes downloadButtonPulse {
-    0% {
-        box-shadow: 0 0 40px rgba(255, 204, 0, 0.7),
-                    0 0 80px rgba(255, 204, 0, 0.4),
-                    0 0 120px rgba(255, 204, 0, 0.2);
-        transform: scale(1) !important;
-    }
-    100% {
-        box-shadow: 0 0 45px rgba(255, 204, 0, 0.9), 
-                    0 0 90px rgba(255, 204, 0, 0.6),
-                    0 0 135px rgba(255, 204, 0, 0.4);
-        transform: scale(1) !important;
-    }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
 /* Effet hover encore plus intense */
